@@ -34,6 +34,15 @@ if not textutils then
     os.exit(-1)
 end
 
+local screensizex, screensizey = term.getSize()
+if screensizey < 19 or screensizex < 26 then
+    if term.isColor() then
+        term.setTextColor(colors.red)
+    end
+    write("Screen size is too small\n")
+    error()
+end
+
 
 local floor = math.floor
 local max = math.max
@@ -91,6 +100,7 @@ do
     end
 end
 
+
 local tanksizes = {1, 8, 12, 18, 27, 36}
 local heatvalues = {
     [1] = {
@@ -133,3 +143,19 @@ local heatvalues = {
         ["rubber_leaves_mfr"]         =     4,
     }
 }
+local fueltypes
+do
+    local getkeyssorted = function(source)
+        local keys, index = {}, 1
+        for key in pairs(source) do
+            keys[index], index = key, index + 1
+        end
+        table.sort(keys)
+        return keys
+    end
+    
+    fueltypes = {
+        [1] = getkeyssorted(heatvalues[1]),
+        [2] = getkeyssorted(heatvalues[2])
+    }
+end
