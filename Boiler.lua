@@ -159,3 +159,26 @@ do
         [2] = getkeyssorted(heatvalues[2])
     }
 end
+
+local writetitle = function()
+    writewithcolorflip(false, orange, "Harri Knox's Boiler Simulator/Calculator\n\n")
+end
+
+local getoperationselection = function()
+    
+end
+
+local processcontroller = function()
+    local process = 1
+    local run = true
+    local selection, state
+    
+    while run do
+        if process == 1 then
+            selection = getoperationselection()
+            run = false
+        end
+    end
+end
+
+processcontroller()
