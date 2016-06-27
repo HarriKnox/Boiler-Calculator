@@ -38,6 +38,8 @@ end
 local floor = math.floor
 local max = math.max
 local min = math.min
+local maxint = 2 ^ 53
+local constrain = function(value, low, high) return max(min(value, high), low) end
 
 local keyup          = keys['up']
 local keydown        = keys['down']
@@ -50,6 +52,7 @@ local pullevent = os.pullEvent
 
 local setcursorposition = term.setCursorPos
 local getcursorposition = term.getCursorPos
+local shiftcursorposition = function(deltacolumn, deltarow) local column, row = getcursorposition(); setcursorposition(column + deltacolumn, row + deltarow) end
 
 local stringmatch = string.match
 local stringsub = string.sub
@@ -72,9 +75,21 @@ local green     = colors.green     -- 0x2000
 local red       = colors.red       -- 0x4000
 local black     = colors.black     -- 0x8000
 local setcursorblink = term.setCursorBlink
-local settextcolor = term.setTextColor
-local setbackgroundcolor = term.setBackgroundColor
-local clear = term.clear
+local settextcolor = advanced and term.setTextColor or function(color) term.setTextColor(color == black and black or white) end
+local setbackgroundcolor = advanced and term.setBackgroundColor or function(color) term.setBackgroundColor(color == black and black or white) end
+local clear = function() setbackgroundcolor(black) settextcolor(white) setcursorposition(1, 1) term.clear() end
+local writewithcolorflip
+do
+    local previoustextcolor, previousflipped
+    writewithcolorflip = function(flipped, textcolor, text)
+        if textcolor ~= previoustextcolor or flipped ~= previousflipped then
+            settextcolor(flipped and black or textcolor)
+            setbackgroundcolor(flipped and textcolor or black)
+            previoustextcolor, previousflipped = textcolor, flipped
+        end
+        write(text)
+    end
+end
 
 local tanksizes = {1, 8, 12, 18, 27, 36}
 local heatvalues = {
