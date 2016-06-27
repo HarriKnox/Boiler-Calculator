@@ -34,6 +34,48 @@ if not textutils then
     os.exit(-1)
 end
 
+
+local floor = math.floor
+local max = math.max
+local min = math.min
+
+local keyup          = keys['up']
+local keydown        = keys['down']
+local keyleft        = keys['left']
+local keyright       = keys['right']
+local keyenter       = keys['enter']
+local keynumpadenter = 156 -- included because sometimes the numpad enter key is mapped to 156
+local keybackspace   = keys['backspace']
+local pullevent = os.pullEvent
+
+local setcursorposition = term.setCursorPos
+local getcursorposition = term.getCursorPos
+
+local stringmatch = string.match
+local stringsub = string.sub
+
+local advanced = term.isColor()
+local white     = colors.white     -- 0x0001
+local orange    = colors.orange    -- 0x0002
+local magenta   = colors.magenta   -- 0x0004
+local lightblue = colors.lightBlue -- 0x0008
+local yellow    = colors.yellow    -- 0x0010
+local lime      = colors.lime      -- 0x0020
+local pink      = colors.pink      -- 0x0040
+local grey      = colors.gray      -- 0x0080
+local lightgrey = colors.lightGray -- 0x0100
+local cyan      = colors.cyan      -- 0x0200
+local purple    = colors.purple    -- 0x0400
+local blue      = colors.blue      -- 0x0800
+local brown     = colors.brown     -- 0x1000
+local green     = colors.green     -- 0x2000
+local red       = colors.red       -- 0x4000
+local black     = colors.black     -- 0x8000
+local setcursorblink = term.setCursorBlink
+local settextcolor = term.setTextColor
+local setbackgroundcolor = term.setBackgroundColor
+local clear = term.clear
+
 local tanksizes = {1, 8, 12, 18, 27, 36}
 local heatvalues = {
     [1] = {
