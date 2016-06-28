@@ -165,7 +165,89 @@ local writetitle = function()
 end
 
 local getoperationselection = function()
+    local runloop = true
+    local previousselection = 0
+    local selection = 1
+    local selectionsypositions = {}
+    local selections = {
+        "1) total steam produced\n",
+        "2) * fuel consumption rate\n",
+        "3) * min fuel needed for steam\n",
+        "4) * min fuel needed for heat\n",
+        "5) * max heat attained\n",
+        "6) * time to cool off\n",
+        "7) * most efficient boiler size\n"
+    }
     
+    while runloop do
+        local event, key, y
+        if selection ~= previousselection then
+            previousselection = selection
+            
+            clear()
+            writetitle()
+            writewithcolorflip(false, yellow, "What you would like to calculate: (asterisked operations are not yet implemented)\n\n")
+            
+            for i = 1, #selections do
+                if not selectionsypositions[i] then
+                    _, selectionsypositions[i] = getcursorposition()
+                end
+                
+                writewithcolorflip(i == selection, lime, selections[i])
+            end
+            if not selectionsypositions[#selectionsypositions + 1] then
+                _, selectionsypositions[#selectionsypositions + 1] = getcursorposition()
+            end
+            
+            writewithcolorflip(selection == 8, red, "\nQuit")
+        end
+        
+        event, key, _, y = pullevent()
+        if event == "key" then
+            if key == keydown then
+                if selection < 8 then
+                    selection = selection + 1
+                end
+            elseif key == keyup then
+                if selection > 1 then
+                    selection = selection - 1
+                end
+            elseif key == keyenter or key == keynumpadenter then
+                runloop = false
+            end
+        elseif event == "char" then
+            local num = tonumber(key)
+            if num then
+                if num >= 1 and num <= #selections then
+                    selection = num
+                    if selection == previousselection then
+                        runloop = false
+                    end
+                end
+            elseif key == "q" then
+                selection = 8
+                runloop = false
+            end
+        elseif event == "mouse_click" then
+            if y >= selectionsypositions[1] and y < selectionsypositions[8] then
+                for i = 1, #selections do
+                    if y >= selectionsypositions[i] and y < selectionsypositions[i + 1] then
+                        selection = i
+                        if selection == previousselection then
+                            runloop = false
+                        end
+                        break
+                    end
+                end
+            elseif y == selectionsypositions[8] + 1 then
+                selection = 8
+                if selection == previousselection then
+                    runloop = false
+                end
+            end
+        end
+    end
+    return selection
 end
 
 local processcontroller = function()
@@ -174,8 +256,27 @@ local processcontroller = function()
     local selection, state
     
     while run do
+        sleep(0)
         if process == 1 then
             selection = getoperationselection()
+            
+            if selection == 8 then
+                process = 0
+            elseif selection >= 1 and selection < 8 then
+                process = selection + 1
+            else
+                process = -1
+            end
+        elseif process == 0 then
+            clear()
+            run = false
+        elseif process == -1 then
+            clear()
+            writewithcolorflip(false, red, "Unusual unhandled exception occurred. Sorry.\n")
+            run = false
+        elseif process == -2 then
+            clear()
+            writewithcolorflip(false, red, "Operation not supported. Sorry.\n")
             run = false
         end
     end
