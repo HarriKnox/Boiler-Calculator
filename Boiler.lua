@@ -226,7 +226,7 @@ local getoperationselection = function()
                 selection = 6
                 runloop = false
             end
-        elseif event == "mouse_click" then
+        elseif event == "mouse_click" or event == "monitor_touch" then
             if y >= selectionsypositions[1] and y < selectionsypositions[6] then
                 for i = 1, #selections do
                     if y >= selectionsypositions[i] and y < selectionsypositions[i + 1] then
@@ -454,7 +454,7 @@ do
                     runloop = false
                     selection = 10
                 end
-            elseif event == "mouse_click" then
+            elseif event == "mouse_click" or event == "monitor_touch" then
                 local relativeyposition = y - topofsettingsy + 1
                 if relativeyposition >= 1 and relativeyposition <= 9 then
                     if relativeyposition <= 4 then
@@ -516,6 +516,220 @@ do
 end
 
 local calculatesteamproduced
+do
+    local teststateparameters = function(state)
+        local tankpressure = state.tankpressure
+        local tanksize = state.tanksize
+        local boilertype = state.boilertype
+        local fueltype = state.fueltype
+        local fuelamount = state.fuelamount
+        local startingheat = state.startingheat
+        local cooldownheat = state.cooldownheat
+        
+        local validtanksize = false
+        local maxheat = tankpressure == 1 and 500 or 1000
+        
+        if not (tankpressure == 1 or tankpressure == 2) then
+            error("tank pressure not valid: " .. tankpressure, 3)
+        end
+        
+        if not (tanksize >= 1 and tanksize <= 6) then
+            error("tank size not valid, must be between 1 and 6: " .. tanksize, 3)
+        end
+        
+        if fueltypes[boilertype] == nil then
+            error("boiler type not valid, must be 1 or 2: " .. boilertype, 3)
+        end
+        
+        if fueltypes[boilertype][fueltype] == nil then
+            error("fuel type not valid, must be between 1 and " .. #fueltypes[boilertype] .. ": " .. fueltype, 3)
+        end
+        
+        if not (fuelamount >= 1 and fuelamount <= maxint) or fuelamount % 1 ~= 0 then
+            error("fuel amount not valid, must be an integer, positive, and less than the maxint: " .. fuelamount, 3)
+        end
+        
+        if not (startingheat >= 20 and startingheat <= maxheat) then
+            error("starting heat not valid, must be between 20 and " .. maxheat .. ": " .. startingheat, 3)
+        end
+        
+        if not (cooldownheat >= 20 and cooldownheat <= maxheat) then
+            error("cool-down heat not valid, must be between 20 and " .. maxheat .. ": " .. cooldownheat, 3)
+        end
+    end
+    
+    calculatesteamproduced = function(state)
+        local tankpressure = state.tankpressure
+        local tanksize = state.tanksize
+        local boilertype = state.boilertype
+        local fueltype = state.fueltype
+        local fuelamount = state.fuelamount
+        local startingheat = state.startingheat
+        local cooldownheat = state.cooldownheat
+        
+        local heatvalue = heatvalues[boilertype][fueltypes[boilertype][fueltype]]
+        local numberoftanks = tanksizes[tanksize]
+        local fuelburning = 0
+        local isburning = true
+        local partialconversions = 0
+        local watercost = 0
+        
+        -- relative constants
+        local maxheat = tankpressure == 1 and 500 or 1000
+        local heat = startingheat
+        
+        
+        -- Fuel per Cycle
+        -- Derived from original function in the source code as follows:
+        -- 
+        -- public double getFuelPerCycle {
+        --   double fuel = Steam.FUEL_PER_BOILER_CYCLE;
+        --   fuel -= numTanks * Steam.FUEL_PER_BOILER_CYCLE * 0.0125F;
+        --   fuel += Steam.FUEL_HEAT_INEFFICIENCY * getHeatLevel();
+        --   fuel += Steam.FUEL_PRESSURE_INEFFICIENCY * (getMaxHeat() / Steam.MAX_HEAT_HIGH);
+        --   fuel *= numTanks;
+        --   fuel *= efficiencyModifier;
+        --   fuel *= RailcraftConfig.fuelPerSteamMultiplier();
+        --   return fuel;
+        -- }
+        -- where
+        --   Steam.FUEL_PER_BOILER_CYCLE = 8
+        --   Steam.FUEL_HEAT_INEFFICIENCY = 0.8
+        --   Steam.FUEL_PRESSURE_INEFFICIENCY = 4
+        --   Steam.MAX_HEAT_HIGH = 1000
+        --   efficiencyModifier = 1
+        --   RailcraftConfig.fuelPerSteamMultiplier() = 1 in default settings
+        -- and as determined at runtime
+        --   numTanks = 1, 8, 12, 18, 27 or 36
+        --   getMaxHeat = 500 or 1000 for low, high pressure tanks respectively
+        --   getHeatLevel = heat / getMaxHeat
+        -- 
+        -- Inserting these values yields
+        -- fuel = (8 - (numTanks * 8 * 0.0125) + (0.8 * heat / maxHeat) + (4 * maxHeat / 1000)) * numTanks * 1 * 1
+        -- 
+        -- Doing arithmetic to create a linear function of heat with a coefficient and offset returns
+        -- fuel = (numtanks * 0.8 / maxHeat) * heat + (8 - (numTanks * 0.1) + (4 * maxHeat / 1000)) * numTanks
+        local fuelneededpercyclecoefficient = numberoftanks * 0.8 / maxheat
+        local fuelneededpercycleoffset = (8 - (numberoftanks * 0.1) + (4 * maxheat / 1000)) * numberoftanks
+        local fuelneededpercyclemaximum = (numberoftanks * 0.8) + fuelneededpercycleoffset
+        local fuelneededpercycle
+        --local getfuelpercycle = function(heat) return fuelpercyclecoefficient * heat + fuelpercycleoffset end
+        
+        
+        local heatstep = stringmatch(fueltypes[boilertype][fueltype], "firestone") and 1.5 or 0.05
+        local increasingheatchangecoefficient = -3 * heatstep / (maxheat * numberoftanks)
+        local increasingheatchangeoffset = 4 * heatstep / numberoftanks
+        local decreasingheatchangecoefficient = 0.15 / (maxheat * numberoftanks) -- 3 * 0.05 / (maxheat * numberoftanks)
+        local decreasingheatchangeoffset = 0.05 / numberoftanks
+        
+        
+        
+        local tickspercycle = tankpressure == 1 and 16 or 8 -- 8 * 1000 / maxheat
+        local tickspercycleremaining = 0
+        local cycles
+        
+        
+        local steamamount = 0 -- to be bigint
+        local maxheatattained = 0
+        local totalticks = 0 -- to be bigint
+        
+        teststateparameters(state)
+        
+         -- heat-up
+        while isburning and heat < maxheat do
+            totalticks = totalticks + 1
+            tickspercycleremaining = tickspercycleremaining - 1
+            if tickspercycleremaining <= 0 then
+                tickspercycleremaining = tickspercycle
+                fuelneededpercycle = (fuelneededpercyclecoefficient * heat) + fuelneededpercycleoffset
+                while fuelburning < fuelneededpercycle and fuelamount > 0 do
+                    if boilertype == 1 then -- liquid-fueled firebox
+                        if fuelamount >= 1000 then
+                            fuelburning = fuelburning + heatvalue
+                            fuelamount = fuelamount - 1000
+                        else
+                            fuelburning = fuelburning + heatvalue * fuelamount / 1000
+                            fuelamount = 0
+                        end
+                    else -- solid-fueled firebox
+                        fuelburning = fuelburning + heatvalue
+                        fuelamount = fuelamount - 1
+                    end
+                end
+                
+                isburning = fuelburning >= fuelneededpercycle
+                if isburning then
+                    fuelburning = fuelburning - fuelneededpercycle
+                end
+                
+                if heat >= 100 then
+                    partialconversions = partialconversions + (numberoftanks * heat / maxheat)
+                    watercost = floor(partialconversions)
+                    partialconversions = partialconversions - watercost
+                    steamamount = steamamount + (160 * watercost)
+                end
+            end
+            
+            if isburning then
+                heat = heat + increasingheatchangecoefficient * heat + increasingheatchangeoffset
+            else
+                heat = heat - decreasingheatchangecoefficient * heat - decreasingheatchangeoffset
+            end
+        end
+        
+        if heat > maxheat then
+            heat = maxheat
+        end
+        
+        maxheatattained = heat
+        
+        if isburning then -- at max temp
+            if boilertype == 1 then -- liquid-fueled boiler
+                fuelburning = fuelburning + heatvalue * fuelamount / 1000
+            else
+                fuelburning = fuelburning + heatvalue * fuelamount
+            end
+            cycles = floor(fuelburning / fuelneededpercyclemaximum)
+            fuelburning = fuelburning % fuelneededpercyclemaximum
+            watercost = cycles * numberoftanks
+            steamamount = steamamount + (160 * watercost)
+            fuelamount = 0
+            totalticks = totalticks + tickspercycleremaining - 1 + (cycles * tickspercycle)
+            tickspercycleremaining = 0
+        end
+        
+        isburning = false
+        
+        while heat > cooldownheat do
+            totalticks = totalticks + 1
+            tickspercycleremaining = tickspercycleremaining - 1
+            if tickspercycleremaining <= 0 then
+                tickspercycleremaining = tickspercycle
+                fuelneededpercycle = (fuelneededpercyclecoefficient * heat) + fuelneededpercycleoffset
+                
+                isburning = fuelburning >= fuelneededpercycle
+                if isburning then
+                    fuelburning = fuelburning - fuelneededpercycle
+                end
+                
+                if heat >= 100 then
+                    partialconversions = partialconversions + (numberoftanks * heat / maxheat)
+                    watercost = floor(partialconversions)
+                    partialconversions = partialconversions - watercost
+                    steamamount = steamamount + (160 * watercost)
+                end
+            end
+            
+            if isburning then
+                heat = min(heat + increasingheatchangecoefficient * heat + increasingheatchangeoffset, maxheat)
+            else
+                heat = heat - decreasingheatchangecoefficient * heat - decreasingheatchangeoffset
+            end
+        end
+        
+        return {steamamount = steamamount, maxheatattained = maxheatattained, totalticks = totalticks}
+    end
+end
 
 local calculatesteamproducedscreen = function(state)
     local runloop = true
@@ -569,7 +783,7 @@ local calculatesteamproducedscreen = function(state)
                 selection = 2
                 runloop = false
             end
-        elseif event == "mouse_click" then
+        elseif event == "mouse_click" or event == "monitor_touch" then
             if y == topofbuttonsyposition or y == topofbuttonsyposition + 1 then
                 selection = y - topofbuttonsyposition + 1
                 if selection == previousselection then
