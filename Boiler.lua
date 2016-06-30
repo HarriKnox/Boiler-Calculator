@@ -85,15 +85,14 @@ local black     = colors.black     -- 0x8000
 local setcursorblink = term.setCursorBlink
 local settextcolor, setbackgroundcolor, clear, writewithcolorflip
 do
-    local previoustextcolor, previousbackgroundcolor, previousflipped
+    local previoustextcolor, previousbackgroundcolor
     local advanced = term.isColor()
     
     settextcolor = function(color)
         if not advanced then
             color = color == black and black or white
         end
-        if previousflipped or color ~= previoustextcolor then
-            previousflipped = false
+        if color ~= previoustextcolor then
             previoustextcolor = color
             term.setTextColor(color)
         end
@@ -103,27 +102,22 @@ do
         if not advanced then
             color = color == black and black or white
         end
-        if previousflipped or color ~= previousbackgroundcolor then
-            previousflipped = false
+        if color ~= previousbackgroundcolor then
             previousbackgroundcolor = color
             term.setBackgroundColor(color)
         end
     end
     
     clear = function()
-        term.setBackgroundColor(black)
-        term.setTextColor(white)
-        previousflipped, previoustextcolor, previoustextcolor = false, white, black
+        setbackgroundcolor(black)
+        settextcolor(white)
         setcursorposition(1, 1)
         term.clear()
     end
     
     writewithcolorflip = function(flipped, textcolor, text)
-        if textcolor ~= previoustextcolor or flipped ~= previousflipped then
-            settextcolor(flipped and black or textcolor)
-            setbackgroundcolor(flipped and textcolor or black)
-            previoustextcolor, previousbackgroundcolor, previousflipped = flipped and black or textcolor, flipped and textcolor or black, flipped
-        end
+        settextcolor(flipped and black or textcolor)
+        setbackgroundcolor(flipped and textcolor or black)
         write(text)
     end
 end
