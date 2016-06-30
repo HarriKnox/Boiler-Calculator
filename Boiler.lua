@@ -66,7 +66,6 @@ local shiftcursorposition = function(deltacolumn, deltarow) local column, row = 
 local stringmatch = string.match
 local stringsub = string.sub
 
-local advanced = term.isColor()
 local white     = colors.white     -- 0x0001
 local orange    = colors.orange    -- 0x0002
 local magenta   = colors.magenta   -- 0x0004
@@ -84,17 +83,46 @@ local green     = colors.green     -- 0x2000
 local red       = colors.red       -- 0x4000
 local black     = colors.black     -- 0x8000
 local setcursorblink = term.setCursorBlink
-local settextcolor = advanced and term.setTextColor or function(color) term.setTextColor(color == black and black or white) end
-local setbackgroundcolor = advanced and term.setBackgroundColor or function(color) term.setBackgroundColor(color == black and black or white) end
-local clear = function() setbackgroundcolor(black) settextcolor(white) setcursorposition(1, 1) term.clear() end
-local writewithcolorflip
+local settextcolor, setbackgroundcolor, clear, writewithcolorflip
 do
-    local previoustextcolor, previousflipped
+    local previoustextcolor, previousbackgroundcolor, previousflipped
+    local advanced = term.isColor()
+    
+    settextcolor = function(color)
+        if not advanced then
+            color = color == black and black or white
+        end
+        if previousflipped or color ~= previoustextcolor then
+            previousflipped = false
+            previoustextcolor = color
+            term.setTextColor(color)
+        end
+    end
+    
+    setbackgroundcolor = function(color)
+        if not advanced then
+            color = color == black and black or white
+        end
+        if previousflipped or color ~= previousbackgroundcolor then
+            previousflipped = false
+            previousbackgroundcolor = color
+            term.setBackgroundColor(color)
+        end
+    end
+    
+    clear = function()
+        term.setBackgroundColor(black)
+        term.setTextColor(white)
+        previousflipped, previoustextcolor, previoustextcolor = false, white, black
+        setcursorposition(1, 1)
+        term.clear()
+    end
+    
     writewithcolorflip = function(flipped, textcolor, text)
         if textcolor ~= previoustextcolor or flipped ~= previousflipped then
             settextcolor(flipped and black or textcolor)
             setbackgroundcolor(flipped and textcolor or black)
-            previoustextcolor, previousflipped = textcolor, flipped
+            previoustextcolor, previousbackgroundcolor, previousflipped = flipped and black or textcolor, flipped and textcolor or black, flipped
         end
         write(text)
     end
@@ -170,15 +198,15 @@ local getoperationselection = function()
     local selection = 1
     local selectionsypositions = {}
     local selections = {
-        "1) total steam produced\n",
-        "2) * fuel consumption rate\n",
-        "3) * min fuel needed for steam\n",
-        "4) * min fuel needed for heat\n",
-        "5) * most efficient boiler size\n"
+        "1) total steam produced",
+        "2) * fuel consumption rate",
+        "3) * min fuel needed for steam",
+        "4) * min fuel needed for heat",
+        "5) * most efficient boiler size"
     }
     
     while runloop do
-        local event, key, y
+        local event, key, x, y
         if selection ~= previousselection then
             previousselection = selection
             
@@ -192,6 +220,7 @@ local getoperationselection = function()
                 end
                 
                 writewithcolorflip(i == selection, lime, selections[i])
+                write('\n')
             end
             if not selectionsypositions[#selectionsypositions + 1] then
                 _, selectionsypositions[#selectionsypositions + 1] = getcursorposition()
@@ -200,7 +229,7 @@ local getoperationselection = function()
             writewithcolorflip(selection == 6, red, "\nQuit")
         end
         
-        event, key, _, y = pullevent()
+        event, key, x, y = pullevent()
         if event == "key" then
             if key == keydown then
                 if selection < 6 then
@@ -229,7 +258,7 @@ local getoperationselection = function()
         elseif event == "mouse_click" or event == "monitor_touch" then
             if y >= selectionsypositions[1] and y < selectionsypositions[6] then
                 for i = 1, #selections do
-                    if y >= selectionsypositions[i] and y < selectionsypositions[i + 1] then
+                    if y >= selectionsypositions[i] and y < selectionsypositions[i + 1] and x <= #selections[i] then
                         selection = i
                         if selection == previousselection then
                             runloop = false
@@ -237,7 +266,7 @@ local getoperationselection = function()
                         break
                     end
                 end
-            elseif y == selectionsypositions[6] + 1 then
+            elseif y == selectionsypositions[6] + 1 and x <= 4 then
                 selection = 6
                 if selection == previousselection then
                     runloop = false
@@ -265,16 +294,17 @@ do
         local boilertype = 1
         local fueltype = 1
         local fuelamount = 1000 -- to be bigint
-        local fuelamountstring = tostring(fuelamount)
         local startingheat = 20
         local cooldownheat = 20
-        local maxfueltype = 10
         
         local previoustankpressure = 0
         local previoustanksize = 0
         local previousboilertype = 0
         local previousfueltype = 0
         local maxheat = 500
+        local maxfueltype = 0
+        local fuelamountstring = tostring(fuelamount)
+        local fueltypestring = fueltypes[boilertype][fueltype]
         
         local runloop = true
         local selection = 1
@@ -296,6 +326,7 @@ do
                 startingheat = constrain(startingheat, 20, maxheat)
                 cooldownheat = constrain(cooldownheat, 20, maxheat)
                 fuelamount = constrain(fuelamount, 1, maxint)
+                fueltypestring = fueltypes[boilertype][fueltype]
                 
                 clear()
                 writetitle()
@@ -328,7 +359,7 @@ do
                 writewithcolorflip(false, magenta, ": ")
                 writewithcolorflip(false, lightblue, fueltype == 1 and "  -" or "<<-")
                 write(fueltype == maxfueltype and "\n  " or ">>\n  ")
-                write(fueltypes[boilertype][fueltype])
+                write(fueltypestring)
                 write('\n')
                 
                 writewithcolorflip(selection == 5, magenta, "fuel amount")
@@ -456,56 +487,69 @@ do
                 end
             elseif event == "mouse_click" or event == "monitor_touch" then
                 local relativeyposition = y - topofsettingsy + 1
-                if relativeyposition >= 1 and relativeyposition <= 9 then
-                    if relativeyposition <= 4 then
-                        selection = relativeyposition
-                    elseif relativeyposition <= 6 then
-                        selection = relativeyposition - 1
-                    else
-                        selection = relativeyposition - 2
+                if relativeyposition == 1 and x <= 23 then
+                    selection = 1
+                    if x >= 16 and x <= 18 then
+                        tankpressure = 1
+                        maxheat = 500
+                    elseif x >= 20 and x <= 23 then
+                        tankpressure = 2
+                        maxheat = 1000
                     end
-                    
-                    if selection == 1 then
-                        if x >= 16 and x <= 18 then
-                            tankpressure = 1
-                            maxheat = 500
-                        elseif x >= 20 and x <= 23 then
-                            tankpressure = 2
-                            maxheat = 1000
-                        end
-                    elseif selection == 2 then
-                        if x == 12 then -- Perhaps a more efficient way to do this, but for now I care not
-                            tanksize = 1
-                        elseif x == 14 then
-                            tanksize = 2
-                        elseif x == 16 or x == 17 then
-                            tanksize = 3
-                        elseif x == 19 or x == 20 then
-                            tanksize = 4
-                        elseif x == 22 or x == 23 then
-                            tanksize = 5
-                        elseif x == 25 or x == 26 then
-                            tanksize = 6
-                        end
-                    elseif selection == 3 then
-                        if x >= 14 and x <= 19 then
-                            boilertype = 1
-                            fueltype = 1
-                        elseif x >= 21 and x <= 25 then
-                            boilertype = 2
-                            fueltype = 1
-                        end
-                    elseif relativeyposition == 4 then
-                        if (x == 12 or x == 13) and fueltype > 1 then
-                            fueltype = fueltype - 1
-                        elseif (x == 15 or x == 16) and fueltype < maxfueltype then
-                            fueltype = fueltype + 1
-                        end
+                elseif relativeyposition == 2 and x <= 26 then
+                    selection = 2
+                    if x == 12 then -- Perhaps a more efficient way to do this, but for now I care not
+                        tanksize = 1
+                    elseif x == 14 then
+                        tanksize = 2
+                    elseif x == 16 or x == 17 then
+                        tanksize = 3
+                    elseif x == 19 or x == 20 then
+                        tanksize = 4
+                    elseif x == 22 or x == 23 then
+                        tanksize = 5
+                    elseif x == 25 or x == 26 then
+                        tanksize = 6
                     end
-                elseif relativeyposition >= 11 and relativeyposition <= 13 then
-                    selection = relativeyposition - 3
-                    if selection == previousselection then
+                elseif relativeyposition == 3 and x <= 25 then
+                    selection = 3
+                    if x >= 14 and x <= 19 then
+                        boilertype = 1
+                        fueltype = 1
+                    elseif x >= 21 and x <= 25 then
+                        boilertype = 2
+                        fueltype = 1
+                    end
+                elseif (relativeyposition == 4 and x <= 16) or (relativeyposition == 5 and x <= #fueltypestring + 2) then
+                    selection = 4
+                    if (x == 12 or x == 13) and fueltype > 1 then
+                        fueltype = fueltype - 1
+                    elseif (x == 15 or x == 16) and fueltype < maxfueltype then
+                        fueltype = fueltype + 1
+                    end
+                elseif (relativeyposition == 6 and x <= 13 + (boilertype == 1 and 2 or 12)) or (relativeyposition == 7 and x <= #fuelamountstring + 3) then
+                    selection = 5
+                elseif relativeyposition == 8 and x <= 16 + #tostring(startingheat) then
+                    selection = 6
+                elseif relativeyposition == 9 and x <= 17 + #tostring(cooldownheat) then
+                    selection = 7
+                elseif relativeyposition == 11 and x <= 6 then
+                    if selection == 8 then
                         runloop = false
+                    else
+                        selection = 8
+                    end
+                elseif relativeyposition == 12 and x <= 8 then
+                    if selection == 9 then
+                        runloop = false
+                    else
+                        selection = 9
+                    end
+                elseif relativeyposition == 13 and x <= 4 then
+                    if selection == 10 then
+                        runloop = false
+                    else
+                        selection = 10
                     end
                 end
             end
@@ -744,7 +788,7 @@ local calculatesteamproducedscreen = function(state)
     local totalticks = completedstate.totalticks
     
     while runloop do
-        local event, key, y
+        local event, key, x, y
         if previousselection ~= selection then
             previousselection = selection
             
@@ -769,7 +813,7 @@ local calculatesteamproducedscreen = function(state)
             writewithcolorflip(selection == 2, red, "Quit")
         end
         
-        event, key, _, y = pullevent()
+        event, key, x, y = pullevent()
         if event == "key" then
             if key == keyup then
                 selection = 1
@@ -784,10 +828,17 @@ local calculatesteamproducedscreen = function(state)
                 runloop = false
             end
         elseif event == "mouse_click" or event == "monitor_touch" then
-            if y == topofbuttonsyposition or y == topofbuttonsyposition + 1 then
-                selection = y - topofbuttonsyposition + 1
-                if selection == previousselection then
+            if y == topofbuttonsyposition and x <= 8 then
+                if selection == 1 then
                     runloop = false
+                else
+                    selection = 1
+                end
+            elseif y == topofbuttonsyposition + 1 and x <= 4 then
+                if selection == 2 then
+                    runloop = false
+                else
+                    selection = 2
                 end
             end
         end
