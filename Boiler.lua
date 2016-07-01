@@ -2,16 +2,15 @@
     Harri Knox's Boiler Calculator
     
     Will eventually do the following:
-    -   TPFf Hh -> St       calculate steam produced and time taken
+    -   TPFf Hh -> SMt       calculate steam produced and time taken
     -   TPF SH  -> f        calculate minimum fuel amount needed to produce an amount of steam
     -   TPF  Hh -> f        calculate fuel required to attain boiling point from H
     -   TPF     -> f/t      calculate fuel consumption rate at max temperature
-    -   TPFf    -> h        calculate max heat attained
     -   TP   Hh -> time     calculate time for tank to cool off from given size, pressure, and starting heat
     -     Ff    -> TP       determine most efficient size for maximum steam production
                                 (can also be PFf -> T or TFf -> P;
                                 uses TPFf -> S with all 12 discrete values for TP (6 sizes * 2 pressures) to get one with max S)
-    given (T)ank size, tank (P)ressure, (F)uel type, (f)uel amount, (S)team amount, starting (H)eat, cool down (h)eat, (t)ime
+    given (T)ank size, tank (P)ressure, (F)uel type, (f)uel amount, (S)team amount, starting (H)eat, cool down (h)eat, (M)ax heat, (t)ime
     
     Stages:
     1)  heat up from cool to boiling
@@ -50,7 +49,7 @@ end
 local floor = math.floor
 local max = math.max
 local min = math.min
-local maxint = 2 ^ 53
+local maxint = math.maxinteger or 2 ^ 53
 local constrain = function(value, low, high)
     if high < low then
         low, high = high, low
@@ -204,9 +203,9 @@ local getoperationselection = function()
     local selections = {
         "1) total steam produced",
         "2) * fuel consumption rate",
-        "3) * min fuel needed for steam",
-        "4) * min fuel needed for heat",
-        "5) * most efficient boiler size"
+        "3) * min fuel for steam",
+        "4) * min fuel for heat",
+        "5) * most efficient boiler"
     }
     
     while runloop do
