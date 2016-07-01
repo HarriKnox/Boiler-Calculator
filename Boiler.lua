@@ -57,6 +57,8 @@ local keyright       = keys['right']
 local keyenter       = keys['enter']
 local keynumpadenter = 156 -- included because sometimes the numpad enter key is mapped to 156
 local keybackspace   = keys['backspace']
+local scrollup       = -1
+local scrolldown     = 1
 local pullevent = os.pullEvent
 
 local setcursorposition = term.setCursorPos
@@ -209,9 +211,7 @@ local getoperationselection = function()
             writewithcolorflip(false, yellow, "What you would like to calculate: (asterisked operations are not yet implemented)\n\n")
             
             for i = 1, #selections do
-                if not selectionsypositions[i] then
-                    _, selectionsypositions[i] = getcursorposition()
-                end
+                _, selectionsypositions[i] = getcursorposition()
                 
                 writewithcolorflip(i == selection, lime, selections[i])
                 write('\n')
@@ -235,6 +235,16 @@ local getoperationselection = function()
                 end
             elseif key == keyenter or key == keynumpadenter then
                 runloop = false
+            end
+        elseif event == "mouse_scroll" then
+            if key == scrollup then
+                if selection > 1 then
+                    selection = selection - 1
+                end
+            elseif key == scrolldown then
+                if selection < 6 then
+                    selection = selection + 1
+                end
             end
         elseif event == "char" then
             local num = tonumber(key)
@@ -326,9 +336,7 @@ do
                 writetitle()
                 writewithcolorflip(false, lime, "Total Steam Produced\n\n")
                 
-                if not topofsettingsy then
-                    _, topofsettingsy = getcursorposition()
-                end
+                _, topofsettingsy = getcursorposition()
                 
                 writewithcolorflip(selection == 1, magenta, "tank pressure")
                 writewithcolorflip(false, magenta, ": ")
@@ -452,6 +460,16 @@ do
                         writewithcolorflip(false, lightblue, tostring(cooldownheat))
                         write(' ')
                         shiftcursorposition(-1, 0)
+                    end
+                end
+            elseif event == "mouse_scroll" then
+                if key == scrollup then
+                    if selection > 1 then
+                        selection = selection - 1
+                    end
+                elseif key == scrolldown then
+                    if selection < 10 then
+                        selection = selection + 1
                     end
                 end
             elseif event == "char" then
@@ -800,9 +818,8 @@ local calculatesteamproducedscreen = function(state)
             writewithcolorflip(false, lightblue, totalticks)
             writewithcolorflip(false, lightblue, " ticks\n\n")
             
-            if not topofbuttonsyposition then
-                _, topofbuttonsyposition = getcursorposition()
-            end
+            _, topofbuttonsyposition = getcursorposition()
+            
             writewithcolorflip(selection == 1, yellow, "Previous\n")
             writewithcolorflip(selection == 2, red, "Quit")
         end
@@ -815,6 +832,12 @@ local calculatesteamproducedscreen = function(state)
                 selection = 2
             elseif key == keyenter or key == keynumpadenter then
                 runloop = false
+            end
+        elseif event == "mouse_scroll" then
+            if key == scrollup then
+                selection = 1
+            elseif key == scrolldown then
+                selection = 2
             end
         elseif event == "char" then
             if key == "q" then
@@ -880,7 +903,7 @@ local processcontroller = function()
             else
                 process = -1
             end
-        elseif process >= 3 and process <= 8 then
+        elseif process >= 3 and process <= 6 then
             process = -2
         elseif process == 0 then
             clear()
