@@ -79,22 +79,22 @@ local stringformat = string.format
 local tableinsert = table.insert
 local tablesort = table.sort
 
-local white     = colors.white     -- 0x0001
-local orange    = colors.orange    -- 0x0002
-local magenta   = colors.magenta   -- 0x0004
-local lightblue = colors.lightBlue -- 0x0008
-local yellow    = colors.yellow    -- 0x0010
-local lime      = colors.lime      -- 0x0020
-local pink      = colors.pink      -- 0x0040
-local grey      = colors.gray      -- 0x0080
-local lightgrey = colors.lightGray -- 0x0100
-local cyan      = colors.cyan      -- 0x0200
-local purple    = colors.purple    -- 0x0400
-local blue      = colors.blue      -- 0x0800
-local brown     = colors.brown     -- 0x1000
-local green     = colors.green     -- 0x2000
-local red       = colors.red       -- 0x4000
-local black     = colors.black     -- 0x8000
+local colorwhite     = colors.white     -- 0x0001
+local colororange    = colors.orange    -- 0x0002
+local colormagenta   = colors.magenta   -- 0x0004
+local colorlightblue = colors.lightBlue -- 0x0008
+local coloryellow    = colors.yellow    -- 0x0010
+local colorlime      = colors.lime      -- 0x0020
+local colorpink      = colors.pink      -- 0x0040
+local colorgrey      = colors.gray      -- 0x0080
+local colorlightgrey = colors.lightGray -- 0x0100
+local colorcyan      = colors.cyan      -- 0x0200
+local colorpurple    = colors.purple    -- 0x0400
+local colorblue      = colors.blue      -- 0x0800
+local colorbrown     = colors.brown     -- 0x1000
+local colorgreen     = colors.green     -- 0x2000
+local colorred       = colors.red       -- 0x4000
+local colorblack     = colors.black     -- 0x8000
 local setcursorblink = term.setCursorBlink
 local settextcolor, setbackgroundcolor, clear, writewithcolorflip
 do
@@ -103,7 +103,7 @@ do
     
     settextcolor = function(color)
         if not advanced then
-            color = color == black and black or white
+            color = color == colorblack and colorblack or colorwhite
         end
         if color ~= previoustextcolor then
             previoustextcolor = color
@@ -113,7 +113,7 @@ do
     
     setbackgroundcolor = function(color)
         if not advanced then
-            color = color == black and black or white
+            color = color == colorblack and colorblack or colorwhite
         end
         if color ~= previousbackgroundcolor then
             previousbackgroundcolor = color
@@ -122,15 +122,15 @@ do
     end
     
     clear = function()
-        setbackgroundcolor(black)
-        settextcolor(white)
+        setbackgroundcolor(colorblack)
+        settextcolor(colorwhite)
         setcursorposition(1, 1)
         term.clear()
     end
     
     writewithcolorflip = function(flipped, textcolor, text)
-        settextcolor(flipped and black or textcolor)
-        setbackgroundcolor(flipped and textcolor or black)
+        settextcolor(flipped and colorblack or textcolor)
+        setbackgroundcolor(flipped and textcolor or colorblack)
         write(text)
     end
 end
@@ -196,7 +196,7 @@ do
 end
 
 local writetitle = function()
-    writewithcolorflip(false, orange, "Harri Knox's Boiler Simulator/Calculator\n\n")
+    writewithcolorflip(false, colororange, "Harri Knox's Boiler Simulator/Calculator\n\n")
 end
 
 
@@ -355,57 +355,57 @@ do
                 
                 clear()
                 writetitle()
-                writewithcolorflip(false, lime, "Total Steam Produced\n\n")
+                writewithcolorflip(false, colorlime, "Total Steam Produced\n\n")
                 
                 _, topofsettingsy = getcursorposition()
                 
-                writewithcolorflip(selection == 1, magenta, "tank pressure")
-                writewithcolorflip(false, magenta, ": ")
-                writewithcolorflip(tankpressure == 1, lightblue, "low")
-                writewithcolorflip(false, lightblue, " ")
-                writewithcolorflip(tankpressure == 2, lightblue, "high\n")
+                writewithcolorflip(selection == 1, colormagenta, "tank pressure")
+                writewithcolorflip(false, colormagenta, ": ")
+                writewithcolorflip(tankpressure == 1, colorlightblue, "low")
+                writewithcolorflip(false, colorlightblue, " ")
+                writewithcolorflip(tankpressure == 2, colorlightblue, "high\n")
                 
-                writewithcolorflip(selection == 2, magenta, "tank size")
-                writewithcolorflip(false, magenta, ":")
+                writewithcolorflip(selection == 2, colormagenta, "tank size")
+                writewithcolorflip(false, colormagenta, ":")
                 for i = 1, #tanksizes do
-                    writewithcolorflip(false, lightblue, " ")
-                    writewithcolorflip(i == tanksize, lightblue, tostring(tanksizes[i]))
+                    writewithcolorflip(false, colorlightblue, " ")
+                    writewithcolorflip(i == tanksize, colorlightblue, tostring(tanksizes[i]))
                 end
                 
-                writewithcolorflip(selection == 3, magenta, "\nboiler type")
-                writewithcolorflip(false, magenta, ": ")
-                writewithcolorflip(boilertype == 1, lightblue, "liquid")
-                writewithcolorflip(false, lightblue, " ")
-                writewithcolorflip(boilertype == 2, lightblue, "solid\n")
+                writewithcolorflip(selection == 3, colormagenta, "\nboiler type")
+                writewithcolorflip(false, colormagenta, ": ")
+                writewithcolorflip(boilertype == 1, colorlightblue, "liquid")
+                writewithcolorflip(false, colorlightblue, " ")
+                writewithcolorflip(boilertype == 2, colorlightblue, "solid\n")
                 
-                writewithcolorflip(selection == 4, magenta, "fuel type")
-                writewithcolorflip(false, magenta, ": ")
-                writewithcolorflip(false, lightblue, fueltype == 1 and "  -" or "<<-")
+                writewithcolorflip(selection == 4, colormagenta, "fuel type")
+                writewithcolorflip(false, colormagenta, ": ")
+                writewithcolorflip(false, colorlightblue, fueltype == 1 and "  -" or "<<-")
                 write(fueltype == maxfueltype and "\n  " or ">>\n  ")
                 write(fueltypestring)
                 write('\n')
                 
-                writewithcolorflip(selection == 5, magenta, "fuel amount")
-                writewithcolorflip(false, magenta, ": ")
-                writewithcolorflip(false, lightblue, boilertype == 1 and "mB" or "blocks/items")
+                writewithcolorflip(selection == 5, colormagenta, "fuel amount")
+                writewithcolorflip(false, colormagenta, ": ")
+                writewithcolorflip(false, colorlightblue, boilertype == 1 and "mB" or "blocks/items")
                 write('\n  ')
                 fuelamountcursorx, _ = getcursorposition()
                 write(fuelamountstring)
                 
-                writewithcolorflip(selection == 6, magenta, "\nstarting heat")
-                writewithcolorflip(false, magenta, ": ")
+                writewithcolorflip(selection == 6, colormagenta, "\nstarting heat")
+                writewithcolorflip(false, colormagenta, ": ")
                 startingheatcursorx, _ = getcursorposition()
-                writewithcolorflip(false, lightblue, tostring(startingheat))
+                writewithcolorflip(false, colorlightblue, tostring(startingheat))
                 
-                writewithcolorflip(selection == 7, magenta, "\ncool-down heat")
-                writewithcolorflip(false, magenta, ": ")
+                writewithcolorflip(selection == 7, colormagenta, "\ncool-down heat")
+                writewithcolorflip(false, colormagenta, ": ")
                 cooldownheatcursorx, _ = getcursorposition()
-                writewithcolorflip(false, lightblue, tostring(cooldownheat))
+                writewithcolorflip(false, colorlightblue, tostring(cooldownheat))
                 
-                writewithcolorflip(selection == 8, lime, "\n\nCalculate\n")
-                writewithcolorflip(selection == 9, pink, "Default\n")
-                writewithcolorflip(selection == 10, yellow, "Previous\n")
-                writewithcolorflip(selection == 11, red, "Quit")
+                writewithcolorflip(selection == 8, colorlime, "\n\nCalculate\n")
+                writewithcolorflip(selection == 9, colorpink, "Default\n")
+                writewithcolorflip(selection == 10, coloryellow, "Previous\n")
+                writewithcolorflip(selection == 11, colorred, "Quit")
                 
                 if selection < 5 or selection > 7 then
                     setcursorblink(false)
@@ -417,7 +417,7 @@ do
                     elseif selection == 7 then
                         setcursorposition(cooldownheatcursorx + #tostring(cooldownheat), topofsettingsy + 8)
                     end
-                    settextcolor(lightblue)
+                    settextcolor(colorlightblue)
                     setcursorblink(true)
                 end
             end
@@ -468,19 +468,19 @@ do
                         fuelamount = floor(fuelamount / 10)
                         fuelamountstring = formatfuelamount(fuelamount)
                         setcursorposition(fuelamountcursorx, topofsettingsy + 6)
-                        writewithcolorflip(false, lightblue, fuelamountstring)
+                        writewithcolorflip(false, colorlightblue, fuelamountstring)
                         write(' ')
                         shiftcursorposition(-1, 0)
                     elseif selection == 6 then
                         startingheat = floor(startingheat / 10)
                         setcursorposition(startingheatcursorx, topofsettingsy + 7)
-                        writewithcolorflip(false, lightblue, tostring(startingheat))
+                        writewithcolorflip(false, colorlightblue, tostring(startingheat))
                         write(' ')
                         shiftcursorposition(-1, 0)
                     elseif selection == 7 then
                         cooldownheat = floor(cooldownheat / 10)
                         setcursorposition(cooldownheatcursorx, topofsettingsy + 8)
-                        writewithcolorflip(false, lightblue, tostring(cooldownheat))
+                        writewithcolorflip(false, colorlightblue, tostring(cooldownheat))
                         write(' ')
                         shiftcursorposition(-1, 0)
                     end
@@ -502,19 +502,19 @@ do
                         fuelamount = fuelamount * 10 + num
                         fuelamountstring = formatfuelamount(fuelamount)
                         setcursorposition(fuelamountcursorx, topofsettingsy + 6)
-                        writewithcolorflip(false, lightblue, fuelamountstring)
+                        writewithcolorflip(false, colorlightblue, fuelamountstring)
                     elseif selection == 6 then
                         startingheat = startingheat * 10 + num
                         if startingheat < 10 then
                             shiftcursorposition(-1, 0)
                         end
-                        writewithcolorflip(false, lightblue, key)
+                        writewithcolorflip(false, colorlightblue, key)
                     elseif selection == 7 then
                         cooldownheat = cooldownheat * 10 + num
                         if cooldownheat < 10 then
                             shiftcursorposition(-1, 0)
                         end
-                        writewithcolorflip(false, lightblue, key)
+                        writewithcolorflip(false, colorlightblue, key)
                     end
                 elseif key == 'q' then
                     runloop = false
@@ -638,38 +638,38 @@ do
                 
                 clear()
                 writetitle()
-                writewithcolorflip(false, lime, "Most Efficient Boiler Size\n\n")
+                writewithcolorflip(false, colorlime, "Most Efficient Boiler Size\n\n")
                 
                 _, topofsettingsy = getcursorposition()
                 
-                writewithcolorflip(selection == 1, magenta, "boiler type")
-                writewithcolorflip(false, magenta, ": ")
-                writewithcolorflip(boilertype == 1, lightblue, "liquid")
-                writewithcolorflip(false, lightblue, " ")
-                writewithcolorflip(boilertype == 2, lightblue, "solid\n")
+                writewithcolorflip(selection == 1, colormagenta, "boiler type")
+                writewithcolorflip(false, colormagenta, ": ")
+                writewithcolorflip(boilertype == 1, colorlightblue, "liquid")
+                writewithcolorflip(false, colorlightblue, " ")
+                writewithcolorflip(boilertype == 2, colorlightblue, "solid\n")
                 
-                writewithcolorflip(selection == 2, magenta, "fuel type")
-                writewithcolorflip(false, magenta, ": ")
-                writewithcolorflip(false, lightblue, fueltype == 1 and "  -" or "<<-")
+                writewithcolorflip(selection == 2, colormagenta, "fuel type")
+                writewithcolorflip(false, colormagenta, ": ")
+                writewithcolorflip(false, colorlightblue, fueltype == 1 and "  -" or "<<-")
                 write(fueltype == maxfueltype and "\n  " or ">>\n  ")
                 write(fueltypestring)
                 write('\n')
                 
-                writewithcolorflip(selection == 3, magenta, "fuel amount")
-                writewithcolorflip(false, magenta, ": ")
-                writewithcolorflip(false, lightblue, boilertype == 1 and "mB" or "blocks/items")
+                writewithcolorflip(selection == 3, colormagenta, "fuel amount")
+                writewithcolorflip(false, colormagenta, ": ")
+                writewithcolorflip(false, colorlightblue, boilertype == 1 and "mB" or "blocks/items")
                 write('\n  ')
                 fuelamountcursorx, _ = getcursorposition()
                 write(fuelamountstring)
                 
-                writewithcolorflip(selection == 4, lime, "\n\nCalculate\n")
-                writewithcolorflip(selection == 5, pink, "Default\n")
-                writewithcolorflip(selection == 6, yellow, "Previous\n")
-                writewithcolorflip(selection == 7, red, "Quit")
+                writewithcolorflip(selection == 4, colorlime, "\n\nCalculate\n")
+                writewithcolorflip(selection == 5, colorpink, "Default\n")
+                writewithcolorflip(selection == 6, coloryellow, "Previous\n")
+                writewithcolorflip(selection == 7, colorred, "Quit")
                 
                 if selection == 3 then
                     setcursorposition(fuelamountcursorx + #fuelamountstring, topofsettingsy + 4)
-                    settextcolor(lightblue)
+                    settextcolor(colorlightblue)
                     setcursorblink(true)
                 else
                     setcursorblink(false)
@@ -711,7 +711,7 @@ do
                         fuelamount = floor(fuelamount / 10)
                         fuelamountstring = formatfuelamount(fuelamount)
                         setcursorposition(fuelamountcursorx, topofsettingsy + 4)
-                        writewithcolorflip(false, lightblue, fuelamountstring)
+                        writewithcolorflip(false, colorlightblue, fuelamountstring)
                         write(' ')
                         shiftcursorposition(-1, 0)
                     end
@@ -733,7 +733,7 @@ do
                         fuelamount = fuelamount * 10 + num
                         fuelamountstring = formatfuelamount(fuelamount)
                         setcursorposition(fuelamountcursorx, topofsettingsy + 4)
-                        writewithcolorflip(false, lightblue, fuelamountstring)
+                        writewithcolorflip(false, colorlightblue, fuelamountstring)
                     end
                 elseif key == 'q' then
                     runloop = false
@@ -953,19 +953,19 @@ local getoperationselection = function()
             
             clear()
             writetitle()
-            writewithcolorflip(false, yellow, "What you would like to calculate: (asterisked operations are not yet implemented)\n\n")
+            writewithcolorflip(false, coloryellow, "What you would like to calculate: (asterisked operations are not yet implemented)\n\n")
             
             for i = 1, #selections do
                 _, selectionsypositions[i] = getcursorposition()
                 
-                writewithcolorflip(i == selection, lime, selections[i])
+                writewithcolorflip(i == selection, colorlime, selections[i])
                 write('\n')
             end
             if not selectionsypositions[#selectionsypositions + 1] then
                 _, selectionsypositions[#selectionsypositions + 1] = getcursorposition()
             end
             
-            writewithcolorflip(selection == 4, red, "\nQuit")
+            writewithcolorflip(selection == 4, colorred, "\nQuit")
         end
         
         event, key, x, y = pullevent()
@@ -1052,20 +1052,20 @@ local calculatesteamproducedscreen = function(state)
             clear()
             writetitle()
             
-            writewithcolorflip(false, lime, "Boiler Calculation Results\n\n")
-            writewithcolorflip(false, pink, "Steam: ")
-            writewithcolorflip(false, lightblue, steamamount)
+            writewithcolorflip(false, colorlime, "Boiler Calculation Results\n\n")
+            writewithcolorflip(false, colorpink, "Steam: ")
+            writewithcolorflip(false, colorlightblue, steamamount)
             write(" mB\n")
-            writewithcolorflip(false, pink, "Max heat: ")
-            writewithcolorflip(false, lightblue, maxheatattained)
+            writewithcolorflip(false, colorpink, "Max heat: ")
+            writewithcolorflip(false, colorlightblue, maxheatattained)
             write("\n")
-            writewithcolorflip(false, pink, "Time taken: ")
-            writewithcolorflip(false, lightblue, formattedtimestring)
+            writewithcolorflip(false, colorpink, "Time taken: ")
+            writewithcolorflip(false, colorlightblue, formattedtimestring)
             
             _, topofbuttonsyposition = getcursorposition()
             
-            writewithcolorflip(selection == 1, yellow, "Previous\n")
-            writewithcolorflip(selection == 2, red, "Quit")
+            writewithcolorflip(selection == 1, coloryellow, "Previous\n")
+            writewithcolorflip(selection == 2, colorred, "Quit")
         end
         
         event, key, x, y = pullevent()
@@ -1146,26 +1146,26 @@ local calculatemostefficientboilerscreen = function(state)
             clear()
             writetitle()
             
-            writewithcolorflip(false, lime, "Boiler Efficiency Results\n\n")
-            writewithcolorflip(false, pink, "Tank pressure: ")
-            writewithcolorflip(false, lightblue, tankpressure == 1 and "low" or "high")
+            writewithcolorflip(false, colorlime, "Boiler Efficiency Results\n\n")
+            writewithcolorflip(false, colorpink, "Tank pressure: ")
+            writewithcolorflip(false, colorlightblue, tankpressure == 1 and "low" or "high")
             write("\n")
-            writewithcolorflip(false, pink, "Tank size: ")
-            writewithcolorflip(false, lightblue, tanksizes[tanksize])
+            writewithcolorflip(false, colorpink, "Tank size: ")
+            writewithcolorflip(false, colorlightblue, tanksizes[tanksize])
             write("\n\n")
-            writewithcolorflip(false, pink, "Steam: ")
-            writewithcolorflip(false, lightblue, steamamount)
+            writewithcolorflip(false, colorpink, "Steam: ")
+            writewithcolorflip(false, colorlightblue, steamamount)
             write(" mB\n")
-            writewithcolorflip(false, pink, "Max heat: ")
-            writewithcolorflip(false, lightblue, maxheatattained)
+            writewithcolorflip(false, colorpink, "Max heat: ")
+            writewithcolorflip(false, colorlightblue, maxheatattained)
             write("\n")
-            writewithcolorflip(false, pink, "Time taken: ")
-            writewithcolorflip(false, lightblue, formattedtimestring)
+            writewithcolorflip(false, colorpink, "Time taken: ")
+            writewithcolorflip(false, colorlightblue, formattedtimestring)
             
             _, topofbuttonsyposition = getcursorposition()
             
-            writewithcolorflip(selection == 1, yellow, "Previous\n")
-            writewithcolorflip(selection == 2, red, "Quit")
+            writewithcolorflip(selection == 1, coloryellow, "Previous\n")
+            writewithcolorflip(selection == 2, colorred, "Quit")
         end
         
         event, key, x, y = pullevent()
@@ -1284,11 +1284,11 @@ local processcontroller = function()
             run = false
         elseif process == -2 then
             clear()
-            writewithcolorflip(false, red, "Unusual unhandled exception occurred. Sorry.\n")
+            writewithcolorflip(false, colorred, "Unusual unhandled exception occurred. Sorry.\n")
             run = false
         elseif process == -3 then
             clear()
-            writewithcolorflip(false, red, "Operation not supported. Sorry.\n")
+            writewithcolorflip(false, colorred, "Operation not supported. Sorry.\n")
             run = false
         else
             process = -2
