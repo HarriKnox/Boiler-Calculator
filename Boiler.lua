@@ -74,6 +74,7 @@ local shiftcursorposition = function(deltacolumn, deltarow) local column, row = 
 
 local stringmatch = string.match
 local stringsub = string.sub
+local stringformat = string.format
 
 local white     = colors.white     -- 0x0001
 local orange    = colors.orange    -- 0x0002
@@ -838,6 +839,12 @@ local calculatesteamproducedscreen = function(state)
     local maxheatattained = completedstate.maxheatattained
     local totalticks = completedstate.totalticks
     
+    local hours = floor(totalticks / 72000)
+    local minutes = floor(totalticks / 1200) % 60
+    local secondsinteger = floor(totalticks / 20) % 60
+    local secondsdecimal = totalticks % 20 * 5
+    local formattedtimestring = stringformat("%d ticks\n%s%dh %dm %d.%02ds\n\n", totalticks, string.rep(' ', 12), hours, minutes, secondsinteger, secondsdecimal)
+    
     while runloop do
         local event, key, x, y
         if previousselection ~= selection then
@@ -849,13 +856,12 @@ local calculatesteamproducedscreen = function(state)
             writewithcolorflip(false, lime, "Boiler Calculation Results\n\n")
             writewithcolorflip(false, pink, "Steam: ")
             writewithcolorflip(false, lightblue, steamamount)
-            writewithcolorflip(false, lightblue, " mB\n")
+            write(  " mB\n")
             writewithcolorflip(false, pink, "Max heat: ")
             writewithcolorflip(false, lightblue, maxheatattained)
-            writewithcolorflip(false, lightblue, "\n")
+            write("\n")
             writewithcolorflip(false, pink, "Time taken: ")
-            writewithcolorflip(false, lightblue, totalticks)
-            writewithcolorflip(false, lightblue, " ticks\n\n")
+            writewithcolorflip(false, lightblue, formattedtimestring)
             
             _, topofbuttonsyposition = getcursorposition()
             
