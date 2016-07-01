@@ -290,7 +290,49 @@ end
 
 
 local totalsteamproducedoptionsscreen
+local calculatesteamproduced
 do
+    local teststateparameters = function(state)
+        local tankpressure = state.tankpressure
+        local tanksize = state.tanksize
+        local boilertype = state.boilertype
+        local fueltype = state.fueltype
+        local fuelamount = state.fuelamount
+        local startingheat = state.startingheat
+        local cooldownheat = state.cooldownheat
+        
+        local validtanksize = false
+        local maxheat = tankpressure == 1 and 500 or 1000
+        
+        if not (tankpressure == 1 or tankpressure == 2) then
+            error("tank pressure not valid: " .. tankpressure, 3)
+        end
+        
+        if not (tanksize >= 1 and tanksize <= 6) then
+            error("tank size not valid, must be between 1 and 6: " .. tanksize, 3)
+        end
+        
+        if fueltypes[boilertype] == nil then
+            error("boiler type not valid, must be 1 or 2: " .. boilertype, 3)
+        end
+        
+        if fueltypes[boilertype][fueltype] == nil then
+            error("fuel type not valid, must be between 1 and " .. #fueltypes[boilertype] .. ": " .. fueltype, 3)
+        end
+        
+        if not (fuelamount >= 1 and fuelamount <= maxint) or fuelamount % 1 ~= 0 then
+            error("fuel amount not valid, must be an integer, positive, and less than the maxint: " .. fuelamount, 3)
+        end
+        
+        if not (startingheat >= 20 and startingheat <= maxheat) then
+            error("starting heat not valid, must be between 20 and " .. maxheat .. ": " .. startingheat, 3)
+        end
+        
+        if not (cooldownheat >= 20 and cooldownheat <= maxheat) then
+            error("cool-down heat not valid, must be between 20 and " .. maxheat .. ": " .. cooldownheat, 3)
+        end
+    end
+    
     local formatfuelamount = function(fuelamount)
         local fuelamountstring = tostring(fuelamount)
         local screensizex
@@ -301,14 +343,15 @@ do
         return fuelamountstring
     end
     
-    totalsteamproducedoptionsscreen = function()
-        local tankpressure = 1
-        local tanksize = 1
-        local boilertype = 1
-        local fueltype = 1
-        local fuelamount = 1000 -- to be bigint
-        local startingheat = 20
-        local cooldownheat = 20
+    totalsteamproducedoptionsscreen = function(state)
+        local state = state or {tankpressure = 1, tanksize = 1, boilertype = 1, fueltype = 1, fuelamount = 1000, startingheat = 20, cooldownheat = 20}
+        local tankpressure = state.tankpressure
+        local tanksize = state.tanksize
+        local boilertype = state.boilertype
+        local fueltype = state.fueltype
+        local fuelamount = state.fuelamount -- to be bigint
+        local startingheat = state.startingheat
+        local cooldownheat = state.cooldownheat
         
         local previoustankpressure = 0
         local previoustanksize = 0
@@ -327,6 +370,8 @@ do
         local startingheatcursorx
         local cooldownheatcursorx
         
+        --teststateparameters(state)
+        
         while runloop do
             local event, key, x, y
             if selection ~= previousselection or tankpressure ~= previoustankpressure or tanksize ~= previoustanksize or boilertype ~= previousboilertype or fueltype ~= previousfueltype then
@@ -336,6 +381,7 @@ do
                 previousboilertype = boilertype
                 previousfueltype = fueltype
                 maxfueltype = #(fueltypes[boilertype])
+                maxheat = tankpressure == 1 and 500 or 1000
                 startingheat = constrain(startingheat, 20, maxheat)
                 cooldownheat = constrain(cooldownheat, 20, maxheat)
                 fuelamount = constrain(fuelamount, 1, maxint)
@@ -434,7 +480,6 @@ do
                 elseif key == keyleft then
                     if selection == 1 and tankpressure == 2 then
                         tankpressure = 1
-                        maxheat = 500
                     elseif selection == 2 and tanksize > 1 then
                         tanksize = tanksize - 1
                     elseif selection == 3 and boilertype == 2 then
@@ -512,10 +557,8 @@ do
                     selection = 1
                     if x >= 16 and x <= 18 then
                         tankpressure = 1
-                        maxheat = 500
                     elseif x >= 20 and x <= 23 then
                         tankpressure = 2
-                        maxheat = 1000
                     end
                 elseif relativeyposition == 2 and x <= 26 then
                     selection = 2
@@ -577,50 +620,6 @@ do
         end
         
         return selection, {tankpressure = tankpressure, tanksize = tanksize, boilertype = boilertype, fueltype = fueltype, fuelamount = fuelamount, startingheat = startingheat, cooldownheat = cooldownheat}
-    end
-end
-
-local calculatesteamproduced
-do
-    local teststateparameters = function(state)
-        local tankpressure = state.tankpressure
-        local tanksize = state.tanksize
-        local boilertype = state.boilertype
-        local fueltype = state.fueltype
-        local fuelamount = state.fuelamount
-        local startingheat = state.startingheat
-        local cooldownheat = state.cooldownheat
-        
-        local validtanksize = false
-        local maxheat = tankpressure == 1 and 500 or 1000
-        
-        if not (tankpressure == 1 or tankpressure == 2) then
-            error("tank pressure not valid: " .. tankpressure, 3)
-        end
-        
-        if not (tanksize >= 1 and tanksize <= 6) then
-            error("tank size not valid, must be between 1 and 6: " .. tanksize, 3)
-        end
-        
-        if fueltypes[boilertype] == nil then
-            error("boiler type not valid, must be 1 or 2: " .. boilertype, 3)
-        end
-        
-        if fueltypes[boilertype][fueltype] == nil then
-            error("fuel type not valid, must be between 1 and " .. #fueltypes[boilertype] .. ": " .. fueltype, 3)
-        end
-        
-        if not (fuelamount >= 1 and fuelamount <= maxint) or fuelamount % 1 ~= 0 then
-            error("fuel amount not valid, must be an integer, positive, and less than the maxint: " .. fuelamount, 3)
-        end
-        
-        if not (startingheat >= 20 and startingheat <= maxheat) then
-            error("starting heat not valid, must be between 20 and " .. maxheat .. ": " .. startingheat, 3)
-        end
-        
-        if not (cooldownheat >= 20 and cooldownheat <= maxheat) then
-            error("cool-down heat not valid, must be between 20 and " .. maxheat .. ": " .. cooldownheat, 3)
-        end
     end
     
     -- Fuel per Cycle
@@ -910,7 +909,7 @@ local processcontroller = function()
                 process = -1
             end
         elseif process == 2 then
-            selection, state = totalsteamproducedoptionsscreen()
+            selection, state = totalsteamproducedoptionsscreen(state)
             
             if selection == 8 then
                 process = 20
