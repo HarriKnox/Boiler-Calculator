@@ -34,13 +34,16 @@ if not textutils then
     os.exit(-1)
 end
 
-local screensizex, screensizey = term.getSize()
-if screensizey < 19 or screensizex < 26 then
-    if term.isColor() then
-        term.setTextColor(colors.red)
+local getscreensize = term.getSize
+do
+    local screensizex, screensizey = term.getSize()
+    if screensizey < 19 or screensizex < 26 then
+        if term.isColor() then
+            term.setTextColor(colors.red)
+        end
+        write("Screen size is too small\n")
+        error()
     end
-    write("Screen size is too small\n")
-    error()
 end
 
 
@@ -48,7 +51,12 @@ local floor = math.floor
 local max = math.max
 local min = math.min
 local maxint = 2 ^ 53
-local constrain = function(value, low, high) return max(min(value, high), low) end
+local constrain = function(value, low, high)
+    if high < low then
+        low, high = high, low
+    end
+    return max(min(value, high), low)
+end
 
 local keyup          = keys['up']
 local keydown        = keys['down']
@@ -286,6 +294,8 @@ local totalsteamproducedoptionsscreen
 do
     local formatfuelamount = function(fuelamount)
         local fuelamountstring = tostring(fuelamount)
+        local screensizex
+        screensizex, _ = getscreensize()
         if #fuelamountstring > screensizex - 3 then
             return "..." .. stringsub(fuelamountstring, -screensizex + 6, -1)
         end
