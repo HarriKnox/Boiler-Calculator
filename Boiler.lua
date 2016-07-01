@@ -345,6 +345,7 @@ do
     
     totalsteamproducedoptionsscreen = function(state)
         local state = state or {tankpressure = 1, tanksize = 1, boilertype = 1, fueltype = 1, fuelamount = 1000, startingheat = 20, cooldownheat = 20}
+        
         local tankpressure = state.tankpressure
         local tanksize = state.tanksize
         local boilertype = state.boilertype
@@ -357,12 +358,13 @@ do
         local previoustanksize = 0
         local previousboilertype = 0
         local previousfueltype = 0
-        local maxheat = 500
-        local maxfueltype = 0
-        local fuelamountstring = tostring(fuelamount)
-        local fueltypestring = fueltypes[boilertype][fueltype]
+        local maxheat
+        local maxfueltype
+        local fueltypestring
+        local fuelamountstring
         
         local runloop = true
+        local setdefaults = false
         local selection = 1
         local previousselection = 0
         local topofsettingsy
@@ -370,11 +372,21 @@ do
         local startingheatcursorx
         local cooldownheatcursorx
         
-        --teststateparameters(state)
-        
         while runloop do
             local event, key, x, y
-            if selection ~= previousselection or tankpressure ~= previoustankpressure or tanksize ~= previoustanksize or boilertype ~= previousboilertype or fueltype ~= previousfueltype then
+            if selection ~= previousselection or tankpressure ~= previoustankpressure or tanksize ~= previoustanksize or boilertype ~= previousboilertype or fueltype ~= previousfueltype or setdefaults then
+                if setdefaults then
+                    tankpressure = 1
+                    tanksize = 1
+                    boilertype = 1
+                    fueltype = 1
+                    fuelamount = 1000 -- to be bigint
+                    startingheat = 20
+                    cooldownheat = 20
+                    
+                    setdefaults = false
+                end
+                
                 previousselection = selection
                 previoustankpressure = tankpressure
                 previoustanksize = tanksize
@@ -386,6 +398,7 @@ do
                 cooldownheat = constrain(cooldownheat, 20, maxheat)
                 fuelamount = constrain(fuelamount, 1, maxint)
                 fueltypestring = fueltypes[boilertype][fueltype]
+                fuelamountstring = formatfuelamount(fuelamount)
                 
                 clear()
                 writetitle()
@@ -437,9 +450,10 @@ do
                 writewithcolorflip(false, lightblue, tostring(cooldownheat))
                 
                 writewithcolorflip(selection == 8, lime, "\n\nSimulate\n")
-                writewithcolorflip(selection == 9, yellow, "Previous\n")
-                writewithcolorflip(selection == 10, red, "Quit")
-                setcursorposition(0, 0)
+                writewithcolorflip(selection == 9, pink, "Default\n")
+                writewithcolorflip(selection == 10, yellow, "Previous\n")
+                writewithcolorflip(selection == 11, red, "Quit")
+                
                 if selection < 5 or selection > 7 then
                     setcursorblink(false)
                 else
@@ -462,7 +476,7 @@ do
                         selection = selection - 1
                     end
                 elseif key == keydown then
-                    if selection < 10 then
+                    if selection < 11 then
                         selection = selection + 1
                     end
                 elseif key == keyright then
@@ -489,7 +503,9 @@ do
                         fueltype = fueltype - 1
                     end
                 elseif key == keyenter or key == keynumpadenter then
-                    if selection >= 8 then
+                    if selection == 9 then
+                        setdefaults = true
+                    elseif selection >= 8 then
                         runloop = false
                     else
                         selection = 8
@@ -522,7 +538,7 @@ do
                         selection = selection - 1
                     end
                 elseif key == scrolldown then
-                    if selection < 10 then
+                    if selection < 11 then
                         selection = selection + 1
                     end
                 end
@@ -549,7 +565,7 @@ do
                     end
                 elseif key == 'q' then
                     runloop = false
-                    selection = 10
+                    selection = 11
                 end
             elseif event == "mouse_click" or event == "monitor_touch" then
                 local relativeyposition = y - topofsettingsy + 1
@@ -603,17 +619,23 @@ do
                     else
                         selection = 8
                     end
-                elseif relativeyposition == 12 and x <= 8 then
+                elseif relativeyposition == 12 and x <= 7 then
                     if selection == 9 then
-                        runloop = false
+                        setdefaults = true
                     else
                         selection = 9
                     end
-                elseif relativeyposition == 13 and x <= 4 then
+                elseif relativeyposition == 13 and x <= 8 then
                     if selection == 10 then
                         runloop = false
                     else
                         selection = 10
+                    end
+                elseif relativeyposition == 14 and x <= 4 then
+                    if selection == 11 then
+                        runloop = false
+                    else
+                        selection = 11
                     end
                 end
             end
@@ -695,7 +717,6 @@ do
         local increasingheatchangeoffset = 4 * heatstep / numberoftanks
         local decreasingheatchangecoefficient = 0.15 / (maxheat * numberoftanks) -- 3 * 0.05 / (maxheat * numberoftanks)
         local decreasingheatchangeoffset = 0.05 / numberoftanks
-        
         
         
         local tickspercycle = tankpressure == 1 and 16 or 8 -- 8 * 1000 / maxheat
@@ -913,9 +934,9 @@ local processcontroller = function()
             
             if selection == 8 then
                 process = 20
-            elseif selection == 9 then
-                process = 1
             elseif selection == 10 then
+                process = 1
+            elseif selection == 11 then
                 process = 0
             else
                 process = -1
