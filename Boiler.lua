@@ -623,6 +623,46 @@ do
         end
     end
     
+    -- Fuel per Cycle
+    -- Derived from original function in the source code as follows:
+    -- 
+    -- public double getFuelPerCycle {
+    --   double fuel = Steam.FUEL_PER_BOILER_CYCLE;
+    --   fuel -= numTanks * Steam.FUEL_PER_BOILER_CYCLE * 0.0125F;
+    --   fuel += Steam.FUEL_HEAT_INEFFICIENCY * getHeatLevel();
+    --   fuel += Steam.FUEL_PRESSURE_INEFFICIENCY * (getMaxHeat() / Steam.MAX_HEAT_HIGH);
+    --   fuel *= numTanks;
+    --   fuel *= efficiencyModifier;
+    --   fuel *= RailcraftConfig.fuelPerSteamMultiplier();
+    --   return fuel;
+    -- }
+    -- where
+    --   Steam.FUEL_PER_BOILER_CYCLE = 8
+    --   Steam.FUEL_HEAT_INEFFICIENCY = 0.8
+    --   Steam.FUEL_PRESSURE_INEFFICIENCY = 4
+    --   Steam.MAX_HEAT_HIGH = 1000
+    --   efficiencyModifier = 1
+    --   RailcraftConfig.fuelPerSteamMultiplier() = 1 in default settings
+    -- and as determined at runtime
+    --   numTanks = 1, 8, 12, 18, 27 or 36
+    --   getMaxHeat = 500 or 1000 for low, high pressure tanks respectively
+    --   getHeatLevel = heat / getMaxHeat
+    -- 
+    -- Inserting these values yields
+    -- fuel = (8 - (numTanks * 8 * 0.0125) + (0.8 * heat / maxHeat) + (4 * maxHeat / 1000)) * numTanks * 1 * 1
+    -- 
+    -- Doing arithmetic to create a linear function of heat with a coefficient and offset returns
+    -- fuel = (numtanks * 0.8 / maxHeat) * heat + (8 - (numTanks * 0.1) + (4 * maxHeat / 1000)) * numTanks
+    local getfuelneededpercyclecoefficient = function(maxheat, numberoftanks)
+        return numberoftanks * 0.8 / maxheat
+    end
+    local getfuelneededpercycleoffset = function(maxheat, numberoftanks)
+        return (8 - (numberoftanks * 0.1) + (4 * maxheat / 1000)) * numberoftanks
+    end
+    local getfuelneededpercyclemaximum = function(maxheat, numberoftanks)
+        return (numberoftanks * 0.8) + getfuelneededpercycleoffset(maxheat, numberoftanks)
+    end
+    
     calculatesteamproduced = function(state)
         local tankpressure = state.tankpressure
         local tanksize = state.tanksize
@@ -644,39 +684,9 @@ do
         local heat = startingheat
         
         
-        -- Fuel per Cycle
-        -- Derived from original function in the source code as follows:
-        -- 
-        -- public double getFuelPerCycle {
-        --   double fuel = Steam.FUEL_PER_BOILER_CYCLE;
-        --   fuel -= numTanks * Steam.FUEL_PER_BOILER_CYCLE * 0.0125F;
-        --   fuel += Steam.FUEL_HEAT_INEFFICIENCY * getHeatLevel();
-        --   fuel += Steam.FUEL_PRESSURE_INEFFICIENCY * (getMaxHeat() / Steam.MAX_HEAT_HIGH);
-        --   fuel *= numTanks;
-        --   fuel *= efficiencyModifier;
-        --   fuel *= RailcraftConfig.fuelPerSteamMultiplier();
-        --   return fuel;
-        -- }
-        -- where
-        --   Steam.FUEL_PER_BOILER_CYCLE = 8
-        --   Steam.FUEL_HEAT_INEFFICIENCY = 0.8
-        --   Steam.FUEL_PRESSURE_INEFFICIENCY = 4
-        --   Steam.MAX_HEAT_HIGH = 1000
-        --   efficiencyModifier = 1
-        --   RailcraftConfig.fuelPerSteamMultiplier() = 1 in default settings
-        -- and as determined at runtime
-        --   numTanks = 1, 8, 12, 18, 27 or 36
-        --   getMaxHeat = 500 or 1000 for low, high pressure tanks respectively
-        --   getHeatLevel = heat / getMaxHeat
-        -- 
-        -- Inserting these values yields
-        -- fuel = (8 - (numTanks * 8 * 0.0125) + (0.8 * heat / maxHeat) + (4 * maxHeat / 1000)) * numTanks * 1 * 1
-        -- 
-        -- Doing arithmetic to create a linear function of heat with a coefficient and offset returns
-        -- fuel = (numtanks * 0.8 / maxHeat) * heat + (8 - (numTanks * 0.1) + (4 * maxHeat / 1000)) * numTanks
-        local fuelneededpercyclecoefficient = numberoftanks * 0.8 / maxheat
-        local fuelneededpercycleoffset = (8 - (numberoftanks * 0.1) + (4 * maxheat / 1000)) * numberoftanks
-        local fuelneededpercyclemaximum = (numberoftanks * 0.8) + fuelneededpercycleoffset
+        local fuelneededpercyclecoefficient = getfuelneededpercyclecoefficient(maxheat, numberoftanks)
+        local fuelneededpercycleoffset = getfuelneededpercycleoffset(maxheat, numberoftanks)
+        local fuelneededpercyclemaximum = getfuelneededpercyclemaximum(maxheat, numberoftanks)
         local fuelneededpercycle
         --local getfuelpercycle = function(heat) return fuelpercyclecoefficient * heat + fuelpercycleoffset end
         
@@ -872,6 +882,15 @@ local calculatesteamproducedscreen = function(state)
     
     return selection
 end
+
+local calculatefuelconsumptionrate
+--[[
+        local fuelneededpercycleoffset = (8 - (numberoftanks * 0.1) + (4 * maxheat / 1000)) * numberoftanks
+        local fuelneededpercyclemaximum = (numberoftanks * 0.8) + fuelneededpercycleoffset
+        
+        local fuelrate = 1000 / (tickspercycle / fuelneededpercyclemaximum * heatvalue) for liquid
+        local fuelrate = 1    / (tickspercycle / fuelneededpercyclemaximum * heatvalue) for solid
+--]]
 
 local processcontroller = function()
     local process = 1
