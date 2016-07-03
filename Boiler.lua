@@ -139,7 +139,7 @@ do
 end
 
 local writetitle = function()
-    writewithcolorflip(false, colororange, "Harri Knox's Boiler Simulator/Calculator\n\n")
+    writewithcolorflip(false, colororange, "Harri Knox's Boiler Calculator\n\n")
 end
 
 
@@ -200,6 +200,10 @@ do
         [1] = getkeyssorted(heatvalues[1]),
         [2] = getkeyssorted(heatvalues[2])
     }
+end
+
+local sortsteamamounts = function(a, b)
+    return a.steamamount > b.steamamount
 end
 
 local formatfuelamount = function(fuelamount)
@@ -463,14 +467,7 @@ local getoperationselection = function()
     local runloop = true
     local previousselection = 0
     local selection = 1
-    local selectionsypositions = {}
-    local selections = {
-        "1) total steam produced",
-        "2) most efficient boiler",
-        "3) fuel consumption rate",
-        --"4) * min fuel for steam",
-        --"5) * min fuel for heat",
-    }
+    local topofsettingsy
     
     while runloop do
         local event, key, x, y
@@ -479,17 +476,13 @@ local getoperationselection = function()
             
             clear()
             writetitle()
-            writewithcolorflip(false, coloryellow, "What you would like to calculate: (asterisked operations are not yet implemented)\n\n")
+            writewithcolorflip(false, coloryellow, "What you would like to calculate:\n\n")
             
-            for i = 1, #selections do
-                _, selectionsypositions[i] = getcursorposition()
-                
-                writewithcolorflip(i == selection, colorlime, selections[i])
-                write("\n")
-            end
-            if not selectionsypositions[#selectionsypositions + 1] then
-                _, selectionsypositions[#selectionsypositions + 1] = getcursorposition()
-            end
+            _, topofsettingsy = getcursorposition()
+            
+            writewithcolorflip(selection == 1, colorlime, "1) total steam produced\n")
+            writewithcolorflip(selection == 2, colorlime, "2) most efficient boiler\n")
+            writewithcolorflip(selection == 3, colorlime, "3) fuel consumption rate\n")
             
             writewithcolorflip(selection == 4, colorred, "\nQuit")
         end
@@ -520,7 +513,7 @@ local getoperationselection = function()
         elseif event == 'char' then
             local num = tonumber(key)
             if num then
-                if num >= 1 and num <= #selections then
+                if num >= 1 and num <= 3 then
                     selection = num
                     if selection == previousselection then
                         runloop = false
@@ -531,21 +524,19 @@ local getoperationselection = function()
                 runloop = false
             end
         elseif event == 'mouse_click' or event == 'monitor_touch' then
-            if y >= selectionsypositions[1] and y < selectionsypositions[#selectionsypositions] then
-                for i = 1, #selections do
-                    if y >= selectionsypositions[i] and y < selectionsypositions[i + 1] and x <= #selections[i] then
-                        selection = i
-                        if selection == previousselection then
-                            runloop = false
-                        end
-                        break
-                    end
-                end
-            elseif y == selectionsypositions[#selectionsypositions] + 1 and x <= 4 then
-                selection = 4
-                if selection == previousselection then
-                    runloop = false
-                end
+            local relativeyposition = y - topofsettingsy + 1
+            if relativeyposition == 1 and x <= 23 then
+                selection = 1
+                runloop = false
+            elseif relativeyposition == 2 and x <= 24 then
+                selection = 2
+                runloop = false
+            elseif relativeyposition == 3 and x <= 24 then
+                selection = 3
+                runloop = false
+            elseif relativeyposition == 5 and x <= 4 then
+                selection == 4
+                runloop = false
             end
         end
     end
@@ -690,7 +681,7 @@ local steamproducedoptions = function(state)
                     selection = selection + 1
                 end
             elseif key == keyright then
-                if selection == 1 and tankpressure == 1 then
+                if selection == 1 then
                     tankpressure = 2
                     maxheat = 1000
                 elseif selection == 2 and tanksize < 6 then
@@ -702,7 +693,7 @@ local steamproducedoptions = function(state)
                     fueltype = fueltype + 1
                 end
             elseif key == keyleft then
-                if selection == 1 and tankpressure == 2 then
+                if selection == 1 and then
                     tankpressure = 1
                 elseif selection == 2 and tanksize > 1 then
                     tanksize = tanksize - 1
@@ -827,29 +818,17 @@ local steamproducedoptions = function(state)
             elseif relativeyposition == 9 and x <= 17 + #tostring(cooldownheat) then
                 selection = 7
             elseif relativeyposition == 11 and x <= 9 then
-                if selection == 8 then
-                    runloop = false
-                else
-                    selection = 8
-                end
+                selection = 8
+                runloop = false
             elseif relativeyposition == 12 and x <= 7 then
-                if selection == 9 then
-                    setdefaults = true
-                else
-                    selection = 9
-                end
+                selection = 9
+                setdefaults = true
             elseif relativeyposition == 13 and x <= 8 then
-                if selection == 10 then
-                    runloop = false
-                else
-                    selection = 10
-                end
+                selection = 10
+                runloop = false
             elseif relativeyposition == 14 and x <= 4 then
-                if selection == 11 then
-                    runloop = false
-                else
-                    selection = 11
-                end
+                selection = 11
+                runloop = false
             end
         end
     end
@@ -884,6 +863,8 @@ local steamproducedresults = function(state)
             writetitle()
             
             writewithcolorflip(false, colorlime, "Boiler Calculation Results\n\n")
+            writewithcolorflip(false, coloryellow, "Note: Calculated results and actual results may differ slightly\n\n")
+            
             writewithcolorflip(false, colorpink, "Steam: ")
             writewithcolorflip(false, colorlightblue, steamamount)
             write(" mB\n")
@@ -924,17 +905,11 @@ local steamproducedresults = function(state)
             end
         elseif event == 'mouse_click' or event == 'monitor_touch' then
             if y == topofbuttonsyposition and x <= 8 then
-                if selection == 1 then
-                    runloop = false
-                else
-                    selection = 1
-                end
+                selection = 1
+                runloop = false
             elseif y == topofbuttonsyposition + 1 and x <= 4 then
-                if selection == 2 then
-                    runloop = false
-                else
-                    selection = 2
-                end
+                selection = 2
+                runloop = false
             end
         end
     end
@@ -1109,29 +1084,17 @@ local mostefficientoptions = function(state)
             elseif (relativeyposition == 4 and x <= 13 + (boilertype == 1 and 2 or 12)) or (relativeyposition == 5 and x <= #fuelamountstring + 3) then
                 selection = 3
             elseif relativeyposition == 7 and x <= 9 then
-                if selection == 4 then
-                    runloop = false
-                else
-                    selection = 4
-                end
+                selection = 4
+                runloop = false
             elseif relativeyposition == 8 and x <= 7 then
-                if selection == 5 then
-                    setdefaults = true
-                else
-                    selection = 5
-                end
+                selection = 5
+                setdefaults = true
             elseif relativeyposition == 9 and x <= 8 then
-                if selection == 6 then
-                    runloop = false
-                else
-                    selection = 6
-                end
+                selection = 6
+                runloop = false
             elseif relativeyposition == 10 and x <= 4 then
-                if selection == 7 then
-                    runloop = false
-                else
-                    selection = 7
-                end
+                selection = 7
+                runloop = false
             end
         end
     end
@@ -1155,7 +1118,7 @@ local mostefficientresults = function(state)
             completedstates[index], index = completedstate, index + 1
         end
     end
-    tablesort(completedstates, function(a, b) return a.steamamount > b.steamamount end)
+    tablesort(completedstates, sortsteamamounts)
     
     local steamamount = completedstates[1].steamamount
     local maxheatattained = completedstates[1].maxheatattained
@@ -1178,6 +1141,8 @@ local mostefficientresults = function(state)
             writetitle()
             
             writewithcolorflip(false, colorlime, "Boiler Efficiency Results\n\n")
+            writewithcolorflip(false, coloryellow, "Note: Calculated results and actual results may differ slightly\n\n")
+            
             writewithcolorflip(false, colorpink, "Tank pressure: ")
             writewithcolorflip(false, colorlightblue, tankpressure == 1 and "low\n" or "high\n")
             writewithcolorflip(false, colorpink, "Tank size: ")
@@ -1223,17 +1188,11 @@ local mostefficientresults = function(state)
             end
         elseif event == 'mouse_click' or event == 'monitor_touch' then
             if y == topofbuttonsyposition and x <= 8 then
-                if selection == 1 then
-                    runloop = false
-                else
-                    selection = 1
-                end
+                selection = 1
+                runloop = false
             elseif y == topofbuttonsyposition + 1 and x <= 4 then
-                if selection == 2 then
-                    runloop = false
-                else
-                    selection = 2
-                end
+                selection = 2
+                runloop = false
             end
         end
     end
@@ -1287,7 +1246,7 @@ local fuelconsumptionrateoptions = function(state)
             
             clear()
             writetitle()
-            writewithcolorflip(false, colorlime, "Total Steam Produced\n\n")
+            writewithcolorflip(false, colorlime, "Fuel Consumption Rate\n\n")
             
             _, topofsettingsy = getcursorposition()
             
@@ -1315,7 +1274,6 @@ local fuelconsumptionrateoptions = function(state)
             writewithcolorflip(false, colorlightblue, fueltype == 1 and "  -" or "<<-")
             write(fueltype == maxfueltype and "\n  " or ">>\n  ")
             write(fueltypestring)
-            write("\n")
             
             writewithcolorflip(selection == 5, colorlime, "\n\nCalculate\n")
             writewithcolorflip(selection == 6, colorpink, "Default\n")
@@ -1361,7 +1319,7 @@ local fuelconsumptionrateoptions = function(state)
                 elseif selection >= 5 then
                     runloop = false
                 else
-                    selection = 8
+                    selection = 5
                 end
             end
         elseif event == 'mouse_scroll' then
@@ -1422,30 +1380,18 @@ local fuelconsumptionrateoptions = function(state)
                 elseif (x == 15 or x == 16) and fueltype < maxfueltype then
                     fueltype = fueltype + 1
                 end
-            elseif relativeyposition == 6 and x <= 9 then
-                if selection == 5 then
-                    runloop = false
-                else
-                    selection = 5
-                end
-            elseif relativeyposition == 7 and x <= 7 then
-                if selection == 6 then
-                    setdefaults = true
-                else
-                    selection = 6
-                end
-            elseif relativeyposition == 8 and x <= 8 then
-                if selection == 7 then
-                    runloop = false
-                else
-                    selection = 7
-                end
-            elseif relativeyposition == 9 and x <= 4 then
-                if selection == 8 then
-                    runloop = false
-                else
-                    selection = 8
-                end
+            elseif relativeyposition == 7 and x <= 9 then
+                selection = 5
+                runloop = false
+            elseif relativeyposition == 8 and x <= 7 then
+                selection = 6
+                setdefaults = true
+            elseif relativeyposition == 9 and x <= 8 then
+                selection = 7
+                runloop = false
+            elseif relativeyposition == 10 and x <= 4 then
+                selection = 8
+                runloop = false
             end
         end
     end
@@ -1479,6 +1425,8 @@ local fuelconsumptionrateresults = function(state)
             writetitle()
             
             writewithcolorflip(false, colorlime, "Fuel Consumption Results\n\n")
+            writewithcolorflip(false, coloryellow, "Note: Calculated results and actual results may differ slightly\n\n")
+            
             writewithcolorflip(false, colorpink, "Rate: ")
             writewithcolorflip(false, colorlightblue, formattedfuelratestring)
             
@@ -1513,17 +1461,11 @@ local fuelconsumptionrateresults = function(state)
             end
         elseif event == 'mouse_click' or event == 'monitor_touch' then
             if y == topofbuttonsyposition and x <= 8 then
-                if selection == 1 then
-                    runloop = false
-                else
-                    selection = 1
-                end
+                selection = 1
+                runloop = false
             elseif y == topofbuttonsyposition + 1 and x <= 4 then
-                if selection == 2 then
-                    runloop = false
-                else
-                    selection = 2
-                end
+                selection = 2
+                runloop = false
             end
         end
     end
