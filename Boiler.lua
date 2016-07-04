@@ -35,7 +35,7 @@ end
 
 local getscreensize = term.getSize
 do
-    local screensizex, screensizey = term.getSize()
+    local screensizex, screensizey = getscreensize()
     if screensizey < 18 or screensizex < 26 then
         if term.isColor() then
             term.setTextColor(colors.red)
@@ -47,6 +47,8 @@ end
 
 
 local floor = math.floor
+local ceil = math.ceil
+local round = function(x) return x < 0 and ceil(x - 0.5) or floor(x + 0.5) end
 local max = math.max
 local min = math.min
 local maxint = math.maxinteger or 2 ^ 53
@@ -55,6 +57,13 @@ local constrain = function(value, low, high)
         low, high = high, low
     end
     return max(min(value, high), low)
+end
+local log10 = math.log10
+if not log10 then
+    local mathlog10 = math.log(10)
+    log10 = function(x)
+        return math.log(x) / mathlog10
+    end
 end
 
 local keyup          = keys['up']
@@ -142,6 +151,16 @@ local writetitle = function()
     writewithcolorflip(false, colororange, "Harri Knox's Boiler Calculator\n\n")
 end
 
+local formatfuelamount = function(fuelamount)
+    local fuelamountstring = tostring(fuelamount)
+    local screensizex
+    screensizex, _ = getscreensize()
+    if #fuelamountstring > screensizex - 3 then
+        return "..." .. stringsub(fuelamountstring, -screensizex + 6, -1)
+    end
+    return fuelamountstring
+end
+
 
 local tanksizes = {1, 8, 12, 18, 27, 36}
 local heatvalues = {
@@ -204,16 +223,6 @@ end
 
 local sortsteamamounts = function(a, b)
     return a.steamamount > b.steamamount
-end
-
-local formatfuelamount = function(fuelamount)
-    local fuelamountstring = tostring(fuelamount)
-    local screensizex
-    screensizex, _ = getscreensize()
-    if #fuelamountstring > screensizex - 3 then
-        return "..." .. stringsub(fuelamountstring, -screensizex + 6, -1)
-    end
-    return fuelamountstring
 end
 
 local teststateparameters = function(state)
@@ -978,7 +987,7 @@ local mostefficientoptions = function(state)
             
             writewithcolorflip(selection == 3, colormagenta, "fuel amount")
             writewithcolorflip(false, colormagenta, ": ")
-            writewithcolorflip(false, colorlightblue, boilertype == 1 and "mB" or "blocks/items")
+            writewithcolorflip(false, colorlightblue, boilertype == 1 and "mB" or "items")
             write("\n  ")
             fuelamountcursorx, _ = getcursorposition()
             write(fuelamountstring)
@@ -1081,7 +1090,7 @@ local mostefficientoptions = function(state)
                 elseif (x == 15 or x == 16) and fueltype < maxfueltype then
                     fueltype = fueltype + 1
                 end
-            elseif (relativeyposition == 4 and x <= 13 + (boilertype == 1 and 2 or 12)) or (relativeyposition == 5 and x <= #fuelamountstring + 3) then
+            elseif (relativeyposition == 4 and x <= 13 + (boilertype == 1 and 2 or 7)) or (relativeyposition == 5 and x <= #fuelamountstring + 3) then
                 selection = 3
             elseif relativeyposition == 7 and x <= 9 then
                 selection = 4
@@ -1408,6 +1417,12 @@ local fuelconsumptionrateresults = function(state)
     local boilertype = state.boilertype
     
     local fuelconsumptionrate = calculatefuelconsumptionrate(state)
+    
+    local formatfuelconsumptionrate = function(fuelconsumptionrate, suffix)
+        local screensizex = getscreensize()
+        local allowednumberwidth = screensizex - 6 - #suffix
+        local fcrinteger = floor(fuelconsumptionrate)
+        local remainingdecimalnumberwidth
     
     local formattedfuelratestring
     if boilertype == 1 then
