@@ -677,7 +677,7 @@ local steamproducedoptions = function(state)
             
             writewithcolorflip(selection == 5, colormagenta, "fuel amount")
             writewithcolorflip(false, colormagenta, ": ")
-            writewithcolorflip(false, colorlightblue, boilertype == 1 and "mB" or "blocks/items")
+            writewithcolorflip(false, colorlightblue, boilertype == 1 and "mB" or "items")
             write("\n  ")
             fuelamountcursorx, _ = getcursorposition()
             write(fuelamountstring)
@@ -853,7 +853,7 @@ local steamproducedoptions = function(state)
                 elseif (x == 15 or x == 16) and fueltype < maxfueltype then
                     fueltype = fueltype + 1
                 end
-            elseif (relativeyposition == 6 and x <= 13 + (boilertype == 1 and 2 or 12)) or (relativeyposition == 7 and x <= #fuelamountstring + 3) then
+            elseif (relativeyposition == 6 and x <= 13 + (boilertype == 1 and 2 or 5)) or (relativeyposition == 7 and x <= #fuelamountstring + 3) then
                 selection = 5
             elseif relativeyposition == 8 and x <= 16 + #tostring(startingheat) then
                 selection = 6
@@ -1123,7 +1123,7 @@ local mostefficientoptions = function(state)
                 elseif (x == 15 or x == 16) and fueltype < maxfueltype then
                     fueltype = fueltype + 1
                 end
-            elseif (relativeyposition == 4 and x <= 13 + (boilertype == 1 and 2 or 7)) or (relativeyposition == 5 and x <= #fuelamountstring + 3) then
+            elseif (relativeyposition == 4 and x <= 13 + (boilertype == 1 and 2 or 6)) or (relativeyposition == 5 and x <= #fuelamountstring + 3) then
                 selection = 3
             elseif relativeyposition == 7 and x <= 9 then
                 selection = 4
