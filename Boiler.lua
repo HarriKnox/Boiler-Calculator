@@ -41,7 +41,8 @@ if not textutils then
 end
 
 local getscreensize = term.getSize
-do
+
+local checkscreensize = function()
     local screensizex, screensizey = getscreensize()
     if screensizey < 18 or screensizex < 26 then
         if term.isColor() then
@@ -51,6 +52,7 @@ do
         error()
     end
 end
+checkscreensize()
 
 
 local floor = math.floor
@@ -82,7 +84,13 @@ local keynumpadenter = 156 -- included because sometimes the numpad enter key is
 local keybackspace   = keys['backspace']
 local scrollup       = -1
 local scrolldown     = 1
-local pullevent = os.pullEvent
+local pullevent = function()
+    local event, key, x, y = os.pullEvent()
+    if event == "term_resize" then
+        checkscreensize()
+    end
+    return event, key, x, y
+end
 
 local setcursorposition = term.setCursorPos
 local getcursorposition = term.getCursorPos
@@ -515,7 +523,7 @@ local getoperationselection = function()
     local event, key, x, y
     
     while runloop do
-        if selection ~= previousselection then
+        if selection ~= previousselection or event == 'term_resize' then
             previousselection = selection
             
             clear()
@@ -565,7 +573,7 @@ local getoperationselection = function()
                 selection = 4
                 runloop = false
             end
-        elseif event == 'mouse_click' or event == 'monitor_touch' then
+        elseif event == 'mouse_click' then
             local relativeyposition = y - topofsettingsy + 1
             if relativeyposition == 1 and x <= 23 then
                 selection = 1
@@ -617,7 +625,7 @@ local steamproducedoptions = function(state)
     local setdefaults = false
     
     while runloop do
-        if selection ~= previousselection or tankpressure ~= previoustankpressure or tanksize ~= previoustanksize or boilertype ~= previousboilertype or fueltype ~= previousfueltype or setdefaults then
+        if selection ~= previousselection or event == 'term_resize' or setdefaults or tankpressure ~= previoustankpressure or tanksize ~= previoustanksize or boilertype ~= previousboilertype or fueltype ~= previousfueltype then
             if setdefaults then
                 tankpressure = 1
                 tanksize = 1
@@ -813,7 +821,7 @@ local steamproducedoptions = function(state)
                 runloop = false
                 selection = 11
             end
-        elseif event == 'mouse_click' or event == 'monitor_touch' then
+        elseif event == 'mouse_click' then
             local relativeyposition = y - topofsettingsy + 1
             if relativeyposition == 1 and x <= 23 then
                 selection = 1
@@ -898,7 +906,7 @@ local steamproducedresults = function(state)
     local event, key, x, y
     
     while runloop do
-        if previousselection ~= selection then
+        if previousselection ~= selection or event == 'term_resize' then
             previousselection = selection
             
             clear()
@@ -945,7 +953,7 @@ local steamproducedresults = function(state)
                 selection = 2
                 runloop = false
             end
-        elseif event == 'mouse_click' or event == 'monitor_touch' then
+        elseif event == 'mouse_click' then
             if y == topofsettingsy and x <= 8 then
                 selection = 1
                 runloop = false
@@ -982,7 +990,7 @@ local mostefficientoptions = function(state)
     local setdefaults = false
     
     while runloop do
-        if selection ~= previousselection or boilertype ~= previousboilertype or fueltype ~= previousfueltype or setdefaults then
+        if selection ~= previousselection or event == 'term_resize' or setdefaults or boilertype ~= previousboilertype or fueltype ~= previousfueltype then
             if setdefaults then
                 boilertype = 1
                 fueltype = 1
@@ -1105,7 +1113,7 @@ local mostefficientoptions = function(state)
                 runloop = false
                 selection = 7
             end
-        elseif event == 'mouse_click' or event == 'monitor_touch' then
+        elseif event == 'mouse_click' then
             local relativeyposition = y - topofsettingsy + 1
             if relativeyposition == 1 and x <= 25 then
                 selection = 1
@@ -1164,7 +1172,7 @@ local mostefficientresults = function(state)
     local event, key, x, y
     
     while runloop do
-        if previousselection ~= selection then
+        if previousselection ~= selection or event == 'term_resize' then
             previousselection = selection
             
             clear()
@@ -1218,7 +1226,7 @@ local mostefficientresults = function(state)
                 selection = 2
                 runloop = false
             end
-        elseif event == 'mouse_click' or event == 'monitor_touch' then
+        elseif event == 'mouse_click' then
             if y == topofsettingsy and x <= 8 then
                 selection = 1
                 runloop = false
@@ -1257,7 +1265,7 @@ local fuelconsumptionrateoptions = function(state)
     local setdefaults = false
     
     while runloop do
-        if selection ~= previousselection or tankpressure ~= previoustankpressure or tanksize ~= previoustanksize or boilertype ~= previousboilertype or fueltype ~= previousfueltype or setdefaults then
+        if selection ~= previousselection or event == 'term_resize' or setdefaults or tankpressure ~= previoustankpressure or tanksize ~= previoustanksize or boilertype ~= previousboilertype or fueltype ~= previousfueltype then
             if setdefaults then
                 tankpressure = 1
                 tanksize = 1
@@ -1371,7 +1379,7 @@ local fuelconsumptionrateoptions = function(state)
                 runloop = false
                 selection = 8
             end
-        elseif event == 'mouse_click' or event == 'monitor_touch' then
+        elseif event == 'mouse_click' then
             local relativeyposition = y - topofsettingsy + 1
             if relativeyposition == 1 and x <= 23 then
                 selection = 1
@@ -1454,7 +1462,7 @@ local fuelconsumptionrateresults = function(state)
     local event, key, x, y
     
     while runloop do
-        if previousselection ~= selection then
+        if previousselection ~= selection or event == 'term_resize' then
             previousselection = selection
             
             clear()
@@ -1495,7 +1503,7 @@ local fuelconsumptionrateresults = function(state)
                 selection = 2
                 runloop = false
             end
-        elseif event == 'mouse_click' or event == 'monitor_touch' then
+        elseif event == 'mouse_click' then
             if y == topofsettingsy and x <= 8 then
                 selection = 1
                 runloop = false
@@ -1517,6 +1525,7 @@ local processcontroller = function()
     local selection, state
     
     while run do
+        setcursorblink(false)
         if process == 0 then
             selection = getoperationselection()
             state = nil
