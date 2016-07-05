@@ -26,6 +26,13 @@
     3 * 3 * 2 = 18
     3 * 3 * 3 = 27
     3 * 3 * 4 = 36
+    
+    TODO:
+    Documentation
+    Refactorization (DRY-ification)
+    BigIntegers and BigRatios
+    About page
+    Display clean-up
 --]]
 
 if not textutils then
@@ -148,7 +155,7 @@ do
 end
 
 local writetitle = function()
-    writewithcolorflip(false, colororange, "Harri Knox's Boiler Calculator\n\n")
+    writewithcolorflip(false, colororange, "H Knox's Boiler Calculator\n\n")
 end
 
 local formatfuelamount = function(fuelamount)
@@ -449,6 +456,22 @@ local calculatesteamproduced = function(state)
     return {steamamount = steamamount, maxheatattained = maxheatattained, totalticks = totalticks}
 end
 
+local calculatemostefficientboilersize = function(state)
+    local completedstates, index = {}, 1
+    for tankpressure = 1, 2 do
+        for tanksize = 1, 6 do
+            local completedstate = calculatesteamproduced({tankpressure = tankpressure, tanksize = tanksize, boilertype = state.boilertype, fueltype = state.fueltype, fuelamount = state.fuelamount, startingheat = 20, cooldownheat = 20})
+            completedstate.tankpressure = tankpressure
+            completedstate.tanksize = tanksize
+            
+            completedstates[index], index = completedstate, index + 1
+        end
+    end
+    tablesort(completedstates, sortsteamamounts)
+    
+    return completedstates[1]
+end
+
 local calculatefuelconsumptionrate = function(state)
     state.startingheat = state.startingheat or 20
     state.cooldownheat = state.cooldownheat or 20
@@ -474,12 +497,12 @@ end
 
 local getoperationselection = function()
     local runloop = true
-    local previousselection = 0
     local selection = 1
+    local previousselection
     local topofsettingsy
+    local event, key, x, y
     
     while runloop do
-        local event, key, x, y
         if selection ~= previousselection then
             previousselection = selection
             
@@ -524,9 +547,7 @@ local getoperationselection = function()
             if num then
                 if num >= 1 and num <= 3 then
                     selection = num
-                    if selection == previousselection then
-                        runloop = false
-                    end
+                    runloop = false
                 end
             elseif key == 'q' then
                 selection = 4
@@ -544,7 +565,7 @@ local getoperationselection = function()
                 selection = 3
                 runloop = false
             elseif relativeyposition == 5 and x <= 4 then
-                selection == 4
+                selection = 4
                 runloop = false
             end
         end
@@ -574,16 +595,17 @@ local steamproducedoptions = function(state)
     local fuelamountstring
     
     local runloop = true
-    local setdefaults = false
     local selection = 1
-    local previousselection = 0
+    local previousselection
     local topofsettingsy
+    local event, key, x, y
+    local setdefaults = false
+    
     local fuelamountcursorx
     local startingheatcursorx
     local cooldownheatcursorx
     
     while runloop do
-        local event, key, x, y
         if selection ~= previousselection or tankpressure ~= previoustankpressure or tanksize ~= previoustanksize or boilertype ~= previousboilertype or fueltype ~= previousfueltype or setdefaults then
             if setdefaults then
                 tankpressure = 1
@@ -702,7 +724,7 @@ local steamproducedoptions = function(state)
                     fueltype = fueltype + 1
                 end
             elseif key == keyleft then
-                if selection == 1 and then
+                if selection == 1 then
                     tankpressure = 1
                 elseif selection == 2 and tanksize > 1 then
                     tanksize = tanksize - 1
@@ -846,16 +868,17 @@ local steamproducedoptions = function(state)
 end
 
 local steamproducedresults = function(state)
-    local runloop = true
-    local previousselection = 0
-    local selection = 1
-    local topofbuttonsyposition
-    
     local completedstate = calculatesteamproduced(state)
     
     local steamamount = completedstate.steamamount
     local maxheatattained = completedstate.maxheatattained
     local totalticks = completedstate.totalticks
+    
+    local runloop = true
+    local selection = 1
+    local previousselection
+    local topofsettingsy
+    local event, key, x, y
     
     local hours = floor(totalticks / 72000)
     local minutes = floor(totalticks / 1200) % 60
@@ -864,7 +887,6 @@ local steamproducedresults = function(state)
     local formattedtimestring = stringformat('%d ticks\n   %dh %dm %d.%02ds\n\n', totalticks, hours, minutes, secondsinteger, secondsdecimal)
     
     while runloop do
-        local event, key, x, y
         if previousselection ~= selection then
             previousselection = selection
             
@@ -883,7 +905,7 @@ local steamproducedresults = function(state)
             writewithcolorflip(false, colorpink, "Time taken: ")
             writewithcolorflip(false, colorlightblue, formattedtimestring)
             
-            _, topofbuttonsyposition = getcursorposition()
+            _, topofsettingsy = getcursorposition()
             
             writewithcolorflip(selection == 1, coloryellow, "Previous\n")
             writewithcolorflip(selection == 2, colorred, "Quit")
@@ -913,10 +935,10 @@ local steamproducedresults = function(state)
                 runloop = false
             end
         elseif event == 'mouse_click' or event == 'monitor_touch' then
-            if y == topofbuttonsyposition and x <= 8 then
+            if y == topofsettingsy and x <= 8 then
                 selection = 1
                 runloop = false
-            elseif y == topofbuttonsyposition + 1 and x <= 4 then
+            elseif y == topofsettingsy + 1 and x <= 4 then
                 selection = 2
                 runloop = false
             end
@@ -941,14 +963,15 @@ local mostefficientoptions = function(state)
     local fuelamountstring
     
     local runloop = true
-    local setdefaults = false
     local selection = 1
-    local previousselection = 0
+    local previousselection
     local topofsettingsy
+    local event, key, x, y
+    local setdefaults = false
+    
     local fuelamountcursorx
     
     while runloop do
-        local event, key, x, y
         if selection ~= previousselection or boilertype ~= previousboilertype or fueltype ~= previousfueltype or setdefaults then
             if setdefaults then
                 boilertype = 1
@@ -1112,28 +1135,14 @@ local mostefficientoptions = function(state)
 end
 
 local mostefficientresults = function(state)
-    local runloop = true
-    local previousselection = 0
-    local selection = 1
-    local topofbuttonsyposition
     
-    local completedstates, index = {}, 1
-    for tankpressure = 1, 2 do
-        for tanksize = 1, 6 do
-            local completedstate = calculatesteamproduced({tankpressure = tankpressure, tanksize = tanksize, boilertype = state.boilertype, fueltype = state.fueltype, fuelamount = state.fuelamount, startingheat = 20, cooldownheat = 20})
-            completedstate.tankpressure = tankpressure
-            completedstate.tanksize = tanksize
-            
-            completedstates[index], index = completedstate, index + 1
-        end
-    end
-    tablesort(completedstates, sortsteamamounts)
+    local mostefficientboiler = calculatemostefficientboilersize(state)
     
-    local steamamount = completedstates[1].steamamount
-    local maxheatattained = completedstates[1].maxheatattained
-    local totalticks = completedstates[1].totalticks
-    local tankpressure = completedstates[1].tankpressure
-    local tanksize = completedstates[1].tanksize
+    local steamamount = mostefficientboiler.steamamount
+    local maxheatattained = mostefficientboiler.maxheatattained
+    local totalticks = mostefficientboiler.totalticks
+    local tankpressure = mostefficientboiler.tankpressure
+    local tanksize = mostefficientboiler.tanksize
     
     local hours = floor(totalticks / 72000)
     local minutes = floor(totalticks / 1200) % 60
@@ -1141,8 +1150,13 @@ local mostefficientresults = function(state)
     local secondsdecimal = totalticks % 20 * 5
     local formattedtimestring = stringformat('%d ticks\n   %dh %dm %d.%02ds\n\n', totalticks, hours, minutes, secondsinteger, secondsdecimal)
     
+    local runloop = true
+    local selection = 1
+    local previousselection
+    local topofsettingsy
+    local event, key, x, y
+    
     while runloop do
-        local event, key, x, y
         if previousselection ~= selection then
             previousselection = selection
             
@@ -1166,7 +1180,7 @@ local mostefficientresults = function(state)
             writewithcolorflip(false, colorpink, "Time taken: ")
             writewithcolorflip(false, colorlightblue, formattedtimestring)
             
-            _, topofbuttonsyposition = getcursorposition()
+            _, topofsettingsy = getcursorposition()
             
             writewithcolorflip(selection == 1, coloryellow, "Previous\n")
             writewithcolorflip(selection == 2, colorred, "Quit")
@@ -1196,10 +1210,10 @@ local mostefficientresults = function(state)
                 runloop = false
             end
         elseif event == 'mouse_click' or event == 'monitor_touch' then
-            if y == topofbuttonsyposition and x <= 8 then
+            if y == topofsettingsy and x <= 8 then
                 selection = 1
                 runloop = false
-            elseif y == topofbuttonsyposition + 1 and x <= 4 then
+            elseif y == topofsettingsy + 1 and x <= 4 then
                 selection = 2
                 runloop = false
             end
@@ -1227,14 +1241,13 @@ local fuelconsumptionrateoptions = function(state)
     local fuelamountstring
     
     local runloop = true
-    local setdefaults = false
     local selection = 1
-    local previousselection = 0
+    local previousselection
     local topofsettingsy
-    
+    local event, key, x, y
+    local setdefaults = false
     
     while runloop do
-        local event, key, x, y
         if selection ~= previousselection or tankpressure ~= previoustankpressure or tanksize ~= previoustanksize or boilertype ~= previousboilertype or fueltype ~= previousfueltype or setdefaults then
             if setdefaults then
                 tankpressure = 1
@@ -1409,22 +1422,25 @@ local fuelconsumptionrateoptions = function(state)
 end
 
 local fuelconsumptionrateresults = function(state)
-    local runloop = true
-    local previousselection = 0
-    local selection = 1
-    local topofbuttonsyposition
-    
     local boilertype = state.boilertype
     
     local fuelconsumptionrate = calculatefuelconsumptionrate(state)
     
-    local formatfuelconsumptionrate = function(fuelconsumptionrate, suffix)
+    --[[local formatfuelconsumptionrate = function(fuelconsumptionrate, suffix)
         local screensizex = getscreensize()
         local allowednumberwidth = screensizex - 6 - #suffix
         local fcrinteger = floor(fuelconsumptionrate)
-        local remainingdecimalnumberwidth
+        local remainingdecimalnumberwidth--]]
     
     local formattedfuelratestring
+    
+    local runloop = true
+    local selection = 1
+    local previousselection
+    local topofsettingsy
+    local event, key, x, y
+    
+    
     if boilertype == 1 then
         formattedfuelratestring = stringformat("%f mB/tick\n\n", fuelconsumptionrate * 1000)
     else
@@ -1432,7 +1448,6 @@ local fuelconsumptionrateresults = function(state)
     end
     
     while runloop do
-        local event, key, x, y
         if previousselection ~= selection then
             previousselection = selection
             
@@ -1445,7 +1460,7 @@ local fuelconsumptionrateresults = function(state)
             writewithcolorflip(false, colorpink, "Rate: ")
             writewithcolorflip(false, colorlightblue, formattedfuelratestring)
             
-            _, topofbuttonsyposition = getcursorposition()
+            _, topofsettingsy = getcursorposition()
             
             writewithcolorflip(selection == 1, coloryellow, "Previous\n")
             writewithcolorflip(selection == 2, colorred, "Quit")
@@ -1475,10 +1490,10 @@ local fuelconsumptionrateresults = function(state)
                 runloop = false
             end
         elseif event == 'mouse_click' or event == 'monitor_touch' then
-            if y == topofbuttonsyposition and x <= 8 then
+            if y == topofsettingsy and x <= 8 then
                 selection = 1
                 runloop = false
-            elseif y == topofbuttonsyposition + 1 and x <= 4 then
+            elseif y == topofsettingsy + 1 and x <= 4 then
                 selection = 2
                 runloop = false
             end
@@ -1496,7 +1511,6 @@ local processcontroller = function()
     local selection, state
     
     while run do
-        sleep(0)
         if process == 0 then
             selection = getoperationselection()
             state = nil
