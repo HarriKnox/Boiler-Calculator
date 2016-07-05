@@ -457,19 +457,31 @@ local calculatesteamproduced = function(state)
 end
 
 local calculatemostefficientboilersize = function(state)
-    local completedstates, index = {}, 1
-    for tankpressure = 1, 2 do
-        for tanksize = 1, 6 do
-            local completedstate = calculatesteamproduced({tankpressure = tankpressure, tanksize = tanksize, boilertype = state.boilertype, fueltype = state.fueltype, fuelamount = state.fuelamount, startingheat = 20, cooldownheat = 20})
-            completedstate.tankpressure = tankpressure
-            completedstate.tanksize = tanksize
-            
-            completedstates[index], index = completedstate, index + 1
-        end
-    end
-    tablesort(completedstates, sortsteamamounts)
+    local completedlowpressurestates = {}
+    local completedhighpressurestates = {}
+    local index = 1
+    local completedstate
     
-    return completedstates[1]
+    for tanksize = 1, 6 do
+        completedstate = calculatesteamproduced({tankpressure = 1, tanksize = tanksize, boilertype = state.boilertype, fueltype = state.fueltype, fuelamount = state.fuelamount, startingheat = 20, cooldownheat = 20})
+        completedstate.tankpressure = 1
+        completedstate.tanksize = tanksize
+        
+        completedlowpressurestates[index], index = completedstate, index + 1
+    end
+    tablesort(completedlowpressurestates, sortsteamamounts)
+    
+    index = 1
+    for tanksize = 1, 6 do
+        completedstate = calculatesteamproduced({tankpressure = 2, tanksize = tanksize, boilertype = state.boilertype, fueltype = state.fueltype, fuelamount = state.fuelamount, startingheat = 20, cooldownheat = 20})
+        completedstate.tankpressure = 2
+        completedstate.tanksize = tanksize
+        
+        completedhighpressurestates[index], index = completedstate, index + 1
+    end
+    tablesort(completedhighpressurestates, sortsteamamounts)
+    
+    return {[1] = completedlowpressurestates, [2] = completedhighpressurestates}
 end
 
 local calculatefuelconsumptionrate = function(state)
@@ -593,6 +605,9 @@ local steamproducedoptions = function(state)
     local maxfueltype
     local fueltypestring
     local fuelamountstring
+    local fuelamountcursorx
+    local startingheatcursorx
+    local cooldownheatcursorx
     
     local runloop = true
     local selection = 1
@@ -600,10 +615,6 @@ local steamproducedoptions = function(state)
     local topofsettingsy
     local event, key, x, y
     local setdefaults = false
-    
-    local fuelamountcursorx
-    local startingheatcursorx
-    local cooldownheatcursorx
     
     while runloop do
         if selection ~= previousselection or tankpressure ~= previoustankpressure or tanksize ~= previoustanksize or boilertype ~= previousboilertype or fueltype ~= previousfueltype or setdefaults then
@@ -874,17 +885,17 @@ local steamproducedresults = function(state)
     local maxheatattained = completedstate.maxheatattained
     local totalticks = completedstate.totalticks
     
-    local runloop = true
-    local selection = 1
-    local previousselection
-    local topofsettingsy
-    local event, key, x, y
-    
     local hours = floor(totalticks / 72000)
     local minutes = floor(totalticks / 1200) % 60
     local secondsinteger = floor(totalticks / 20) % 60
     local secondsdecimal = totalticks % 20 * 5
     local formattedtimestring = stringformat('%d ticks\n   %dh %dm %d.%02ds\n\n', totalticks, hours, minutes, secondsinteger, secondsdecimal)
+    
+    local runloop = true
+    local selection = 1
+    local previousselection
+    local topofsettingsy
+    local event, key, x, y
     
     while runloop do
         if previousselection ~= selection then
@@ -961,6 +972,7 @@ local mostefficientoptions = function(state)
     local maxfueltype
     local fueltypestring
     local fuelamountstring
+    local fuelamountcursorx
     
     local runloop = true
     local selection = 1
@@ -968,8 +980,6 @@ local mostefficientoptions = function(state)
     local topofsettingsy
     local event, key, x, y
     local setdefaults = false
-    
-    local fuelamountcursorx
     
     while runloop do
         if selection ~= previousselection or boilertype ~= previousboilertype or fueltype ~= previousfueltype or setdefaults then
@@ -1135,20 +1145,17 @@ local mostefficientoptions = function(state)
 end
 
 local mostefficientresults = function(state)
+    local mostefficientboilers = calculatemostefficientboilersize(state)
     
-    local mostefficientboiler = calculatemostefficientboilersize(state)
+    local mostefficientlowpressureboiler = mostefficientboilers[1][1]
+    local lowpressuresteamamount = mostefficientlowpressureboiler.steamamount
+    local lowpressuretankpressure = mostefficientlowpressureboiler.tankpressure
+    local lowpressuretanksize = mostefficientlowpressureboiler.tanksize
     
-    local steamamount = mostefficientboiler.steamamount
-    local maxheatattained = mostefficientboiler.maxheatattained
-    local totalticks = mostefficientboiler.totalticks
-    local tankpressure = mostefficientboiler.tankpressure
-    local tanksize = mostefficientboiler.tanksize
-    
-    local hours = floor(totalticks / 72000)
-    local minutes = floor(totalticks / 1200) % 60
-    local secondsinteger = floor(totalticks / 20) % 60
-    local secondsdecimal = totalticks % 20 * 5
-    local formattedtimestring = stringformat('%d ticks\n   %dh %dm %d.%02ds\n\n', totalticks, hours, minutes, secondsinteger, secondsdecimal)
+    local mostefficienthighpressureboiler = mostefficientboilers[2][1]
+    local highpressuresteamamount = mostefficienthighpressureboiler.steamamount
+    local highpressuretankpressure = mostefficienthighpressureboiler.tankpressure
+    local highpressuretanksize = mostefficienthighpressureboiler.tanksize
     
     local runloop = true
     local selection = 1
@@ -1167,18 +1174,20 @@ local mostefficientresults = function(state)
             writewithcolorflip(false, coloryellow, "Note: Calculated results and actual results may differ slightly\n\n")
             
             writewithcolorflip(false, colorpink, "Tank pressure: ")
-            writewithcolorflip(false, colorlightblue, tankpressure == 1 and "low\n" or "high\n")
+            writewithcolorflip(false, colorlightblue, "low\n")
             writewithcolorflip(false, colorpink, "Tank size: ")
-            writewithcolorflip(false, colorlightblue, tanksizes[tanksize])
-            write("\n\n")
-            writewithcolorflip(false, colorpink, "Steam: ")
-            writewithcolorflip(false, colorlightblue, steamamount)
-            write(" mB\n")
-            writewithcolorflip(false, colorpink, "Max heat: ")
-            writewithcolorflip(false, colorlightblue, maxheatattained)
-            write("\n")
-            writewithcolorflip(false, colorpink, "Time taken: ")
-            writewithcolorflip(false, colorlightblue, formattedtimestring)
+            writewithcolorflip(false, colorlightblue, tanksizes[lowpressuretanksize])
+            writewithcolorflip(false, colorpink, "\nSteam: ")
+            writewithcolorflip(false, colorlightblue, lowpressuresteamamount)
+            write(" mB\n\n")
+            
+            writewithcolorflip(false, colorpink, "Tank pressure: ")
+            writewithcolorflip(false, colorlightblue, "high\n")
+            writewithcolorflip(false, colorpink, "Tank size: ")
+            writewithcolorflip(false, colorlightblue, tanksizes[highpressuretanksize])
+            writewithcolorflip(false, colorpink, "\nSteam: ")
+            writewithcolorflip(false, colorlightblue, highpressuresteamamount)
+            write(" mB\n\n")
             
             _, topofsettingsy = getcursorposition()
             
@@ -1423,7 +1432,6 @@ end
 
 local fuelconsumptionrateresults = function(state)
     local boilertype = state.boilertype
-    
     local fuelconsumptionrate = calculatefuelconsumptionrate(state)
     
     --[[local formatfuelconsumptionrate = function(fuelconsumptionrate, suffix)
@@ -1433,19 +1441,17 @@ local fuelconsumptionrateresults = function(state)
         local remainingdecimalnumberwidth--]]
     
     local formattedfuelratestring
+    if boilertype == 1 then
+        formattedfuelratestring = stringformat("%f mB/tick\n\n", fuelconsumptionrate * 1000)
+    else
+        formattedfuelratestring = stringformat("%f items/tick\n\n", fuelconsumptionrate)
+    end
     
     local runloop = true
     local selection = 1
     local previousselection
     local topofsettingsy
     local event, key, x, y
-    
-    
-    if boilertype == 1 then
-        formattedfuelratestring = stringformat("%f mB/tick\n\n", fuelconsumptionrate * 1000)
-    else
-        formattedfuelratestring = stringformat("%f items/tick\n\n", fuelconsumptionrate)
-    end
     
     while runloop do
         if previousselection ~= selection then
@@ -1506,8 +1512,8 @@ end
 
 
 local processcontroller = function()
-    local process = 0
     local run = true
+    local process = 0
     local selection, state
     
     while run do
