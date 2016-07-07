@@ -42,7 +42,7 @@ end
 
 local getscreensize = term.getSize
 
-local checkscreensize = function()
+local function checkscreensize()
     local screensizex, screensizey = getscreensize()
     if screensizey < 18 or screensizex < 26 then
         if term.isColor() then
@@ -57,23 +57,30 @@ checkscreensize()
 
 local floor = math.floor
 local ceil = math.ceil
-local round = function(x) return x < 0 and ceil(x - 0.5) or floor(x + 0.5) end
+local function round(x)
+    return x < 0 and ceil(x - 0.5) or floor(x + 0.5)
+end
+
 local max = math.max
 local min = math.min
+
 local maxint = math.maxinteger or 2 ^ 53
-local constrain = function(value, low, high)
+
+local function constrain(value, low, high)
     if high < low then
         low, high = high, low
     end
     return max(min(value, high), low)
 end
+
 local log10 = math.log10
 if not log10 then
     local mathlog10 = math.log(10)
-    log10 = function(x)
+    function log10(x)
         return math.log(x) / mathlog10
     end
 end
+
 
 local keyup          = keys['up']
 local keydown        = keys['down']
@@ -84,7 +91,8 @@ local keynumpadenter = 156 -- included because sometimes the numpad enter key is
 local keybackspace   = keys['backspace']
 local scrollup       = -1
 local scrolldown     = 1
-local pullevent = function()
+
+local function pullevent()
     local event, key, x, y = os.pullEvent()
     if event == "term_resize" then
         checkscreensize()
@@ -92,9 +100,10 @@ local pullevent = function()
     return event, key, x, y
 end
 
+
 local setcursorposition = term.setCursorPos
 local getcursorposition = term.getCursorPos
-local shiftcursorposition = function(deltacolumn, deltarow)
+local function shiftcursorposition(deltacolumn, deltarow)
     local column, row = getcursorposition()
     setcursorposition(column + deltacolumn, row + deltarow)
 end
@@ -128,7 +137,7 @@ do
     local previoustextcolor, previousbackgroundcolor
     local advanced = term.isColor()
     
-    settextcolor = function(color)
+    function settextcolor(color)
         if not advanced then
             color = color == colorblack and colorblack or colorwhite
         end
@@ -138,7 +147,7 @@ do
         end
     end
     
-    setbackgroundcolor = function(color)
+    function setbackgroundcolor(color)
         if not advanced then
             color = color == colorblack and colorblack or colorwhite
         end
@@ -148,25 +157,25 @@ do
         end
     end
     
-    clear = function()
+    function clear()
         setbackgroundcolor(colorblack)
         settextcolor(colorwhite)
         setcursorposition(1, 1)
         term.clear()
     end
     
-    writewithcolorflip = function(flipped, textcolor, text)
+    function writewithcolorflip(flipped, textcolor, text)
         settextcolor(flipped and colorblack or textcolor)
         setbackgroundcolor(flipped and textcolor or colorblack)
         write(text)
     end
 end
 
-local writetitle = function()
+local function writetitle()
     writewithcolorflip(false, colororange, "H Knox's Boiler Calculator\n\n")
 end
 
-local formatfuelamount = function(fuelamount)
+local function formatfuelamount(fuelamount)
     local fuelamountstring = tostring(fuelamount)
     local screensizex
     screensizex, _ = getscreensize()
@@ -221,7 +230,7 @@ local heatvalues = {
 }
 local fueltypes
 do
-    local getkeyssorted = function(source)
+    local function getkeyssorted(source)
         local keys, index = {}, 1
         for key in pairs(source) do
             keys[index], index = key, index + 1
@@ -236,11 +245,11 @@ do
     }
 end
 
-local sortsteamamounts = function(a, b)
+local function sortsteamamounts(a, b)
     return a.steamamount > b.steamamount
 end
 
-local teststateparameters = function(state)
+local function teststateparameters(state)
     local tankpressure = state.tankpressure
     local tanksize = state.tanksize
     local boilertype = state.boilertype
@@ -311,19 +320,19 @@ end
 -- 
 -- Doing arithmetic to create a linear function of heat with a coefficient and offset returns
 -- fuel = (numtanks * 0.8 / maxHeat) * heat + (8 - (numTanks * 0.1) + (4 * maxHeat / 1000)) * numTanks
-local getfuelneededpercyclecoefficient = function(maxheat, numberoftanks)
+local function getfuelneededpercyclecoefficient(maxheat, numberoftanks)
     return numberoftanks * 0.8 / maxheat
 end
-local getfuelneededpercycleoffset = function(maxheat, numberoftanks)
+local function getfuelneededpercycleoffset(maxheat, numberoftanks)
     return (8 - (numberoftanks * 0.1) + (4 * maxheat / 1000)) * numberoftanks
 end
-local getfuelneededpercyclemaximum = function(maxheat, numberoftanks)
+local function getfuelneededpercyclemaximum(maxheat, numberoftanks)
     return (numberoftanks * 0.8) + getfuelneededpercycleoffset(maxheat, numberoftanks)
 end
 
 
 
-local calculatesteamproduced = function(state)
+local function calculatesteamproduced(state)
     teststateparameters(state)
     
     local tankpressure = state.tankpressure
@@ -350,7 +359,7 @@ local calculatesteamproduced = function(state)
     local fuelneededpercycleoffset = getfuelneededpercycleoffset(maxheat, numberoftanks)
     local fuelneededpercyclemaximum = getfuelneededpercyclemaximum(maxheat, numberoftanks)
     local fuelneededpercycle
-    --local getfuelpercycle = function(heat) return fuelpercyclecoefficient * heat + fuelpercycleoffset end
+    --local function getfuelpercycle(heat) return fuelpercyclecoefficient * heat + fuelpercycleoffset end
     
     
     local heatstep = stringmatch(fueltypes[boilertype][fueltype], 'firestone') and 1.5 or 0.05
@@ -464,7 +473,7 @@ local calculatesteamproduced = function(state)
     return {steamamount = steamamount, maxheatattained = maxheatattained, totalticks = totalticks}
 end
 
-local calculatemostefficientboilersize = function(state)
+local function calculatemostefficientboilersize(state)
     local completedlowpressurestates = {}
     local completedhighpressurestates = {}
     local index = 1
@@ -492,7 +501,7 @@ local calculatemostefficientboilersize = function(state)
     return {[1] = completedlowpressurestates, [2] = completedhighpressurestates}
 end
 
-local calculatefuelconsumptionrate = function(state)
+local function calculatefuelconsumptionrate(state)
     state.startingheat = state.startingheat or 20
     state.cooldownheat = state.cooldownheat or 20
     state.fuelamount = state.fuelamount or 1000
@@ -515,7 +524,7 @@ end
 
 
 
-local getoperationselection = function()
+local function getoperationselection()
     local runloop = true
     local selection = 1
     local previousselection
@@ -594,7 +603,7 @@ local getoperationselection = function()
 end
 
 
-local steamproducedoptions = function(state)
+local function steamproducedoptions(state)
     local state = state or {tankpressure = 1, tanksize = 1, boilertype = 1, fueltype = 1, fuelamount = 1000, startingheat = 20, cooldownheat = 20}
     
     local tankpressure = state.tankpressure
@@ -886,7 +895,7 @@ local steamproducedoptions = function(state)
     return selection, {tankpressure = tankpressure, tanksize = tanksize, boilertype = boilertype, fueltype = fueltype, fuelamount = fuelamount, startingheat = startingheat, cooldownheat = cooldownheat}
 end
 
-local steamproducedresults = function(state)
+local function steamproducedresults(state)
     local completedstate = calculatesteamproduced(state)
     
     local steamamount = completedstate.steamamount
@@ -968,7 +977,7 @@ local steamproducedresults = function(state)
 end
 
 
-local mostefficientoptions = function(state)
+local function mostefficientoptions(state)
     local state = state or {boilertype = 1, fueltype = 1, fuelamount = 1000}
     
     local boilertype = state.boilertype
@@ -1152,7 +1161,7 @@ local mostefficientoptions = function(state)
     return selection, {boilertype = boilertype, fueltype = fueltype, fuelamount = fuelamount}
 end
 
-local mostefficientresults = function(state)
+local function mostefficientresults(state)
     local mostefficientboilers = calculatemostefficientboilersize(state)
     
     local mostefficientlowpressureboiler = mostefficientboilers[1][1]
@@ -1241,7 +1250,7 @@ local mostefficientresults = function(state)
 end
 
 
-local fuelconsumptionrateoptions = function(state)
+local function fuelconsumptionrateoptions(state)
     local state = state or {tankpressure = 1, tanksize = 1, boilertype = 1, fueltype = 1, fuelamount = 1000, startingheat = 20, cooldownheat = 20}
     
     local tankpressure = state.tankpressure
@@ -1438,11 +1447,11 @@ local fuelconsumptionrateoptions = function(state)
     return selection, {tankpressure = tankpressure, tanksize = tanksize, boilertype = boilertype, fueltype = fueltype}
 end
 
-local fuelconsumptionrateresults = function(state)
+local function fuelconsumptionrateresults(state)
     local boilertype = state.boilertype
     local fuelconsumptionrate = calculatefuelconsumptionrate(state)
     
-    --[[local formatfuelconsumptionrate = function(fuelconsumptionrate, suffix)
+    --[[local function formatfuelconsumptionrate(fuelconsumptionrate, suffix)
         local screensizex = getscreensize()
         local allowednumberwidth = screensizex - 6 - #suffix
         local fcrinteger = floor(fuelconsumptionrate)
@@ -1519,7 +1528,7 @@ end
 
 
 
-local processcontroller = function()
+local function processcontroller()
     local run = true
     local process = 0
     local selection, state
