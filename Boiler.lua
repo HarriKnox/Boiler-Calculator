@@ -172,7 +172,7 @@ do
 end
 
 local function writetitle()
-    writewithcolorflip(false, colororange, "H Knox's Boiler Calculator\n\n")
+    writewithcolorflip(false, colororange, "Harri's Boiler Calculator\n\n")
 end
 
 local function formatfuelamount(fuelamount)
